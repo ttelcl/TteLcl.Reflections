@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/Apps/" />
+  <Folder Name="/Libraries/">
+    <Project Path="TteLcl.Reflections/TteLcl.Reflections.csproj" Id="96dff7cf-4a46-456c-87c4-835d5f34c008" />
+  </Folder>
+</Solution>
