@@ -1,5 +1,7 @@
 <Solution>
-  <Folder Name="/Apps/" />
+  <Folder Name="/Apps/">
+    <Project Path="lowreflect/lowreflect.fsproj" Id="a706f62c-1019-47b0-9eb5-17db98fe6958" />
+  </Folder>
   <Folder Name="/Libraries/">
     <Project Path="TteLcl.Reflections/TteLcl.Reflections.csproj" Id="96dff7cf-4a46-456c-87c4-835d5f34c008" />
   </Folder>
