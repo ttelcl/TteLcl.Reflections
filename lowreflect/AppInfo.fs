@@ -11,6 +11,7 @@ open CommonTools
 
 type private InfoOptions = {
   Assemblies: string list
+  NonPublic: bool
 }
 
 let private runInfo o =
@@ -22,27 +23,50 @@ let private runInfo o =
     if pestream.HasMetadata then
       cp $"\fg{file}\f0 has .net metadata"
       let mr = pestream.GetMetadataReader()
-      for tdefh in mr.TypeDefinitions do
-        let tdef = tdefh |> mr.GetTypeDefinition
-        let ns = tdef.Namespace |> mr.GetString
-        let name = tdef.Name |> mr.GetString
-        let attr = tdef.Attributes
-        let isInterface = attr.HasFlag(TypeAttributes.Interface)
-        let isAbstract = attr.HasFlag(TypeAttributes.Abstract)
-        let isPublic = (attr &&& TypeAttributes.VisibilityMask) = TypeAttributes.Public
-        let color =
-          if isInterface then
-            "\fo"
-          elif isPublic then
-            if isAbstract then "\fG" else "\fg"
+      if mr.IsAssembly then
+        cp "\foTypes\f0:"
+        for tdefh in mr.TypeDefinitions do
+          let tdef = tdefh |> mr.GetTypeDefinition
+          let ns = tdef.Namespace |> mr.GetString
+          let name = tdef.Name |> mr.GetString
+          let attr = tdef.Attributes
+          let visibility = attr &&& TypeAttributes.VisibilityMask
+          let isInterface = attr.HasFlag(TypeAttributes.Interface)
+          let isAbstract = attr.HasFlag(TypeAttributes.Abstract)
+          let isPublic = visibility = TypeAttributes.Public || visibility = TypeAttributes.NestedPublic
+          if isPublic || o.NonPublic then
+            let color =
+              if isInterface then
+                "\fo"
+              elif isPublic then
+                if isAbstract then "\fG" else "\fg"
+              else
+                "\fk"
+            cp $"  \fc{ns}\f0.{color}{name}\f0. ({attr})"
+          ()
+        cp "\foAssemblyFiles\f0:"
+        for afh in mr.AssemblyFiles do
+          let af = afh |> mr.GetAssemblyFile
+          if af.ContainsMetadata then
+            cp $"  \fg{af.Name}\f0 (has metadata)"
           else
-            "\fk"
-        cp $"  \fc{ns}\f0.{color}{name}\f0. ({attr})"
+            cp $"  \fk{af.Name}\f0 (no metadata)"
+          ()
+        cp "\foAssemblyReferences\f0:"
+        let assemblyNames =
+          mr.AssemblyReferences
+          |> Seq.map (fun arh -> arh |> mr.GetAssemblyReference)
+          |> Seq.map (fun ar -> ar.GetAssemblyName())
+          |> Seq.sortBy (fun an -> an.Name)
+          |> Seq.toArray
+        for an in assemblyNames do
+          cp $"  \fg{an.Name}\f0 \fc{an.Version}\f0 ({an.CultureInfo})"
+          ()
         ()
-      ()
+      else
+        cp "  \fyNot an assembly\f0."
     else
       cp $"\fC{file}\fk does not have .net metadata\f0."
-    cp "  \frNYI\f0."
   for assembly in o.Assemblies do
     assembly |> analyze
   0
@@ -63,6 +87,8 @@ let run args =
       else
         let assembly = assembly |> Path.GetFullPath
         rest |> parseMore {o with Assemblies = assembly :: o.Assemblies}
+    | "-np" :: rest ->
+      rest |> parseMore {o with NonPublic = true}
     | [] ->
       if o.Assemblies |> List.isEmpty then
         cp "\foNo assembly arguments (\fg-a\fo) given\f0."
@@ -74,6 +100,7 @@ let run args =
       None
   let oo = args |> parseMore {
     Assemblies = []
+    NonPublic = false
   }
   match oo with
   | Some(o) ->
