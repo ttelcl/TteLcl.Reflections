@@ -6,6 +6,8 @@ open System.Reflection
 open System.Reflection.Metadata
 open System.Reflection.PortableExecutable 
 
+open TteLcl.Reflections
+
 open ColorPrint
 open CommonTools
 
@@ -24,6 +26,9 @@ let private runInfo o =
       cp $"\fg{file}\f0 has .net metadata"
       let mr = pestream.GetMetadataReader()
       if mr.IsAssembly then
+        let asmdef = mr.GetAssemblyDefinition()
+        let myasm = asmdef.GetAssemblyName()
+        cp $"This is assembly \fg{myasm}\f0."
         cp "\foTypes\f0:"
         for tdefh in mr.TypeDefinitions do
           let tdef = tdefh |> mr.GetTypeDefinition
