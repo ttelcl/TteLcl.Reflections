@@ -10,6 +10,7 @@ open TteLcl.Reflections
 
 open ColorPrint
 open CommonTools
+open System.Runtime.InteropServices
 
 type private InfoOptions = {
   Assemblies: string list
@@ -72,6 +73,8 @@ let private runInfo o =
         cp "  \fyNot an assembly\f0."
     else
       cp $"\fC{file}\fk does not have .net metadata\f0."
+  //let rtd = RuntimeEnvironment.GetRuntimeDirectory()
+  //cp $"Current Runtime Directory = {rtd}"
   for assembly in o.Assemblies do
     assembly |> analyze
   0
