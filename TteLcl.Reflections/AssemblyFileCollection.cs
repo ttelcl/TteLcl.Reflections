@@ -19,14 +19,14 @@ namespace TteLcl.Reflections;
 /// </summary>
 public class AssemblyFileCollection
 {
-  private readonly HashSet<string> _assemblyFiles;
+  private readonly Dictionary<string, HashSet<AssemblyFileInfo>> _assemblyFiles;
 
   /// <summary>
   /// Create a new <see cref="AssemblyFileCollection"/>
   /// </summary>
   public AssemblyFileCollection(LoadSystem loadSystem = LoadSystem.Undefined)
   {
-    _assemblyFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    _assemblyFiles = new Dictionary<string, HashSet<AssemblyFileInfo>>();
     LoadSystem = loadSystem;
   }
 
@@ -44,9 +44,46 @@ public class AssemblyFileCollection
   /// Add the specified file to this set (duplicates are ignored)
   /// </summary>
   /// <param name="fileName"></param>
-  public void AddFile(string fileName)
+  /// <returns>
+  /// True if the file was added, false if it was already present
+  /// </returns>
+  public bool AddFile(string fileName)
   {
-    _assemblyFiles.Add(Path.GetFullPath(fileName));
+    var assumedName = Path.GetFileNameWithoutExtension(fileName);
+    if(!_assemblyFiles.TryGetValue(assumedName, out var files))
+    {
+      files = new HashSet<AssemblyFileInfo>();
+      _assemblyFiles[assumedName] = files;
+    }
+    // The constructor ensures the full path is stored
+    var afi = new AssemblyFileInfo(fileName);
+    return files.Add(afi);
+  }
+
+  /// <summary>
+  /// Enumerate the distinct <see cref="AssemblyFileInfo"/> objects cached in this
+  /// collection. Equivalent to <c>AsseemblyTags.SelectMany(tag => FindAssemblyCandidates(tag))</c>
+  /// (but implemented more efficiently)
+  /// </summary>
+  public IEnumerable<AssemblyFileInfo> AssemblyFileInfos =>
+    _assemblyFiles.Values.SelectMany(afset => afset);
+
+  /// <summary>
+  /// Enumerate the list of distinct "assembly tags" in this collection. An assembly tag
+  /// is the potential name of an assembly as derived from an assembly file. It is possible
+  /// that this is not a valid assembly name at all. Additionally, casing may be incorrect.
+  /// </summary>
+  public IReadOnlyCollection<string> AssemblyTags => _assemblyFiles.Keys;
+
+  /// <summary>
+  /// Returns the set of <see cref="AssemblyFileInfo"/> objects in this collection associated
+  /// with the given short assembly <paramref name="name"/>. Returns null if the name is not known
+  /// </summary>
+  /// <param name="name"></param>
+  /// <returns></returns>
+  public IReadOnlySet<AssemblyFileInfo>? FindAssemblyCandidates(string name)
+  {
+    return _assemblyFiles.TryGetValue(name, out var candidates) ? candidates : null;
   }
 
   /// <summary>
@@ -79,7 +116,7 @@ public class AssemblyFileCollection
           // not comparing case insensitively is more or less on purpose
           continue;
         }
-        if(_assemblyFiles.Add(fileName))
+        if(AddFile(fileName))
         {
           count++;
         }
@@ -304,4 +341,57 @@ public class AssemblyFileCollection
     return count;
   }
 
+  /// <summary>
+  /// Add the given seed assembly, other assemblies in the same directory, and the framework files
+  /// associated with the seed. The seed assembly should have a run time configuration file alongside
+  /// it, either a *.config file (.NET Framework) or a *.runtimeconfiguration.json (modern .NET)
+  /// </summary>
+  /// <param name="seedAssembly"></param>
+  /// <returns></returns>
+  public int Seed(string seedAssembly)
+  {
+    if(!File.Exists(seedAssembly))
+    {
+      throw new ArgumentException(
+        $"Expecting an existing file, but got {seedAssembly}");
+    }
+    var classicProbe = seedAssembly + ".config";
+    var modernProbe = Path.ChangeExtension(seedAssembly, ".runtimeconfiguration.json");
+    var classicExists = Path.Exists(classicProbe);
+    var modernExists = Path.Exists(modernProbe);
+    if(classicExists)
+    {
+      if(modernExists)
+      {
+        throw new InvalidOperationException(
+          $"Ambiguous seed: both modern and classic configurations exist: '{modernProbe}' and '{classicProbe}'");
+      }
+      else
+      {
+        return SeedClassic(seedAssembly, classicProbe);
+      }
+    }
+    else
+    {
+      if(modernExists)
+      {
+        return SeedModern(seedAssembly, modernProbe);
+      }
+      else
+      {
+        throw new InvalidOperationException(
+          $"No configuration found. Neither '{modernProbe}' nor '{classicProbe}' exist");
+      }
+    }
+  }
+
+  private int SeedClassic(string seedAssembly, string configFile)
+  {
+    throw new NotImplementedException(); 
+  }
+
+  private int SeedModern(string seedAssembly, string configFile)
+  {
+    throw new NotImplementedException();
+  }
 }
