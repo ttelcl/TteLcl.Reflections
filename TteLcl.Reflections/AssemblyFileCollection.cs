@@ -356,7 +356,7 @@ public class AssemblyFileCollection
         $"Expecting an existing file, but got {seedAssembly}");
     }
     var classicProbe = seedAssembly + ".config";
-    var modernProbe = Path.ChangeExtension(seedAssembly, ".runtimeconfiguration.json");
+    var modernProbe = Path.ChangeExtension(seedAssembly, ".runtimeconfig.json");
     var classicExists = Path.Exists(classicProbe);
     var modernExists = Path.Exists(modernProbe);
     if(classicExists)
@@ -387,11 +387,41 @@ public class AssemblyFileCollection
 
   private int SeedClassic(string seedAssembly, string configFile)
   {
-    throw new NotImplementedException(); 
+    var ccf = new ClassicConfigFile(configFile);
+
+    Console.WriteLine($"DBG: Supported runtime = {ccf.SupportedRuntime}");
+    Console.WriteLine($"Found {ccf.PrivatePathFolders.Count} private paths");
+    foreach(var ppf in ccf.PrivatePathFolders)
+    {
+      Console.WriteLine($"  {ppf}");
+    }
+
+    throw new NotImplementedException(
+      $"NYI: SeedClassic({seedAssembly}, {configFile})"); 
   }
 
   private int SeedModern(string seedAssembly, string configFile)
   {
-    throw new NotImplementedException();
+    // It is quite likely that seedAssembly is not an assembly at all but
+    // a stub executable. Verify that first and use the *.dll instead
+    if(seedAssembly.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+    {
+      if(!AsmReflection.TryGetAssemblyName(seedAssembly, out var assemblyName))
+      {
+        var dll = Path.ChangeExtension(seedAssembly, ".dll");
+        if(File.Exists(dll))
+        {
+          seedAssembly = dll;
+        }
+        else
+        {
+          throw new InvalidOperationException(
+            $"The given file is not an assembly, and the expected related DLL file does not exist: {dll}");
+        }
+      }
+      // else: nothing to see here - it was an assembly after all
+    }
+    throw new NotImplementedException(
+      $"NYI: SeedModern({seedAssembly}, {configFile})");
   }
 }
