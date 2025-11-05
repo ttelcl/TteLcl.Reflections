@@ -15,9 +15,10 @@ type private Options = {
 let private runCheck o =
   let afc = new AssemblyFileCollection()
   for a in o.Assemblies do
+    let tag = Path.GetFileNameWithoutExtension(a)
     cp $"Adding \fg{a}\f0..."
-    let count = afc.Seed(a)
-    cp $"  Added \fb{count}\f0 entries"
+    let count = afc.Seed(a, tag)
+    cp $"  Added \fb{count}\f0 candidate assemblies"
   let byTag = afc.GetAssembliesByTag()
   cp "Prepared assemblies by tag:"
   for kvp in byTag do
@@ -34,20 +35,15 @@ let private runCheck o =
     cp "\fgNo ambiguities found\f0."
   else
     cp $"\fb{ambiguousRegistrations.Length}\fy ambiguous names found\f0:"
-    if verbose |> not then
-      cp "  (pass \fg-v\f0 to include versions)"
     for (name, infos) in ambiguousRegistrations do
       cp $"  \fo{name}\f0:"
       for info in infos do
         let fileName = info.FileName
-        if verbose then
-          let an = info.GetAssemblyName()
-          if an = null then
-            cp $"    \fk{fileName}\f0 (\frnot an assembly\f0)"
-          else
-            cp $"    \fy{fileName}\f0 (\fc{an.Version}\f0)"
+        let an = info.GetAssemblyName()
+        if an = null then
+          cp $"    \fk{fileName}\f0 (\frnot an assembly\f0)"
         else
-          cp $"    {fileName}\f0"
+          cp $"    \fy{fileName}\f0 (\fc{an.Version}\f0)"
   0
 
 let run args =
