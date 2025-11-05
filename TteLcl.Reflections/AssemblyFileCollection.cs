@@ -5,9 +5,11 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.Versioning;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -19,14 +21,23 @@ namespace TteLcl.Reflections;
 /// </summary>
 public class AssemblyFileCollection
 {
+  // Maps assumed assembly names to a set of AssemblyFileInfo objects, each of which
+  // is mapped to a set of tags. That "set of AssemblyFileInfo objects" are the keys
+  // of the inner dictionaries
   private readonly Dictionary<string, HashSet<AssemblyFileInfo>> _assemblyFiles;
+  private readonly Dictionary<string, IReadOnlySet<AssemblyFileInfo>> _assemblyFilesView;
+  private readonly Dictionary<AssemblyFileInfo, HashSet<string>> _assemblyTags;
+  private readonly Dictionary<AssemblyFileInfo, IReadOnlySet<string>> _assemblyTagsView;
 
   /// <summary>
   /// Create a new <see cref="AssemblyFileCollection"/>
   /// </summary>
   public AssemblyFileCollection(LoadSystem loadSystem = LoadSystem.Undefined)
   {
-    _assemblyFiles = new Dictionary<string, HashSet<AssemblyFileInfo>>();
+    _assemblyFiles = new Dictionary<string, HashSet<AssemblyFileInfo>>(StringComparer.OrdinalIgnoreCase);
+    _assemblyFilesView = new Dictionary<string, IReadOnlySet<AssemblyFileInfo>>(StringComparer.OrdinalIgnoreCase);
+    _assemblyTags = new Dictionary<AssemblyFileInfo, HashSet<string>>();
+    _assemblyTagsView = new Dictionary<AssemblyFileInfo, IReadOnlySet<string>>();
     LoadSystem = loadSystem;
   }
 
@@ -41,26 +52,6 @@ public class AssemblyFileCollection
   public BitMode BitMode { get; private set; }
 
   /// <summary>
-  /// Add the specified file to this set (duplicates are ignored)
-  /// </summary>
-  /// <param name="fileName"></param>
-  /// <returns>
-  /// True if the file was added, false if it was already present
-  /// </returns>
-  public bool AddFile(string fileName)
-  {
-    var assumedName = Path.GetFileNameWithoutExtension(fileName);
-    if(!_assemblyFiles.TryGetValue(assumedName, out var files))
-    {
-      files = new HashSet<AssemblyFileInfo>();
-      _assemblyFiles[assumedName] = files;
-    }
-    // The constructor ensures the full path is stored
-    var afi = new AssemblyFileInfo(fileName);
-    return files.Add(afi);
-  }
-
-  /// <summary>
   /// Enumerate the distinct <see cref="AssemblyFileInfo"/> objects cached in this
   /// collection. Equivalent to <c>AsseemblyTags.SelectMany(tag => FindAssemblyCandidates(tag))</c>
   /// (but implemented more efficiently)
@@ -73,17 +64,105 @@ public class AssemblyFileCollection
   /// is the potential name of an assembly as derived from an assembly file. It is possible
   /// that this is not a valid assembly name at all. Additionally, casing may be incorrect.
   /// </summary>
-  public IReadOnlyCollection<string> AssemblyTags => _assemblyFiles.Keys;
+  public IReadOnlyCollection<string> AssemblyKeys => _assemblyFiles.Keys;
 
   /// <summary>
-  /// Returns the set of <see cref="AssemblyFileInfo"/> objects in this collection associated
-  /// with the given short assembly <paramref name="name"/>. Returns null if the name is not known
+  /// A view on the assemblies in this collection, grouped by assumed assembly name
   /// </summary>
-  /// <param name="name"></param>
-  /// <returns></returns>
-  public IReadOnlySet<AssemblyFileInfo>? FindAssemblyCandidates(string name)
+  public IReadOnlyDictionary<string, IReadOnlySet<AssemblyFileInfo>> AssembliesByName => _assemblyFilesView;
+
+  /// <summary>
+  /// Mapping from <see cref="AssemblyFileInfo"/> to the set of tag strings.
+  /// </summary>
+  public IReadOnlyDictionary<AssemblyFileInfo, IReadOnlySet<string>> AssemblyTags => _assemblyTagsView;
+
+  /// <summary>
+  /// Add the specified file to this set (duplicates are ignored)
+  /// </summary>
+  /// <param name="fileName"></param>
+  /// <param name="tags"></param>
+  /// <returns>
+  /// True if the file was added, false if it was already present
+  /// </returns>
+  public bool AddFile(string fileName, IEnumerable<string> tags)
   {
-    return _assemblyFiles.TryGetValue(name, out var candidates) ? candidates : null;
+    var assumedName = Path.GetFileNameWithoutExtension(fileName);
+    if(!_assemblyFiles.TryGetValue(assumedName, out var files))
+    {
+      files = new HashSet<AssemblyFileInfo>();
+      _assemblyFiles[assumedName] = files;
+      _assemblyFilesView[assumedName] = files;
+    }
+    // The constructor ensures the full path is stored
+    var afi = new AssemblyFileInfo(fileName);
+    var added = files.Add(afi);
+    if(!_assemblyTags.TryGetValue(afi, out var tagset))
+    {
+      tagset = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+      _assemblyTags[afi] = tagset;
+      _assemblyTagsView[afi] = tagset;
+    }
+    foreach(var tag in tags)
+    {
+      tagset.Add(tag);
+    }
+    return added;
+
+  }
+
+  /// <summary>
+  /// Return the assemblies grouped by tags
+  /// </summary>
+  /// <returns></returns>
+  public IReadOnlyDictionary<string, IReadOnlySet<AssemblyFileInfo>> GetAssembliesByTag()
+  {
+    var assemblyTagPairs =
+      _assemblyTagsView
+      .SelectMany(kvp => kvp.Value.Select(tag => (kvp.Key, tag)));
+    var groupedByTag =
+      assemblyTagPairs
+      .GroupBy(pair => pair.tag, StringComparer.OrdinalIgnoreCase);
+    var assembliesByTag =
+      groupedByTag
+      .ToDictionary(
+        g => g.Key,
+        g => g.Select(pair => pair.Key).ToHashSet() as IReadOnlySet<AssemblyFileInfo>,
+        StringComparer.OrdinalIgnoreCase);
+    return assembliesByTag;
+  }
+
+  /// <summary>
+  /// Return the assemblies that have the given tag
+  /// </summary>
+  public IReadOnlySet<AssemblyFileInfo> GetAssembliesByTag(string tag)
+  {
+    var result =
+      _assemblyTagsView
+      .Where(kvp => kvp.Value.Contains(tag))
+      .Select(kvp => kvp.Key)
+      .ToHashSet();
+    return result;
+  }
+
+  /// <summary>
+  /// Get the assemblies in this collection that have the assumed assembly name
+  /// '<paramref name="assemblyName"/>' (case insensitively)
+  /// </summary>
+  /// <param name="assemblyName">
+  /// The name to search for
+  /// </param>
+  /// <param name="assemblyFileInfos">
+  /// The set of <see cref="AssemblyFileInfo"/>s found (or null if not found)
+  /// </param>
+  /// <returns>
+  /// True if found (and <paramref name="assemblyFileInfos"/> is not null), false
+  /// otherwise
+  /// </returns>
+  public bool TryGetAssemblies(
+    string assemblyName,
+    [NotNullWhen(true)] out IReadOnlySet<AssemblyFileInfo>? assemblyFileInfos)
+  {
+    return _assemblyFilesView.TryGetValue(assemblyName, out assemblyFileInfos);
   }
 
   /// <summary>
@@ -98,13 +177,17 @@ public class AssemblyFileCollection
   /// <param name="pattern">
   /// The file pattern for assembly files. Defaults to <c>*.dll</c>.
   /// </param>
+  /// <param name="tags">
+  /// Tags to add to added files
+  /// </param>
   /// <returns>
   /// The number of files added (excluding duplicates)
   /// </returns>
-  public int AddFolder(string folderName, bool subFolders, string pattern = "*.dll")
+  public int AddFolder(string folderName, bool subFolders, IEnumerable<string> tags, string pattern = "*.dll")
   {
     folderName = Path.GetFullPath(folderName);
     var count = 0;
+    tags ??= [];
     if(Directory.Exists(folderName))
     {
       foreach(var fileName in Directory.EnumerateFiles(
@@ -116,7 +199,7 @@ public class AssemblyFileCollection
           // not comparing case insensitively is more or less on purpose
           continue;
         }
-        if(AddFile(fileName))
+        if(AddFile(fileName, tags))
         {
           count++;
         }
@@ -153,17 +236,17 @@ public class AssemblyFileCollection
       throw new InvalidOperationException(
         "Cannot include .NET Core frameworks: already comitted to .NET Framework, not .NET Core descendants");
     }
-    if(bits64 && BitMode == BitMode.Bit32)
+    if(bits64 && BitMode == BitMode.X86)
     {
       throw new InvalidOperationException(
         "Cannot include 64 bit .NET Core: already committed to 32 bit");
     }
-    if(!bits64 && BitMode == BitMode.Bit64)
+    if(!bits64 && BitMode == BitMode.X64)
     {
       throw new InvalidOperationException(
         "Cannot include 32 bit .NET Core: already committed to 64 bit");
     }
-    BitMode = bits64 ? BitMode.Bit64 : BitMode.Bit32;
+    BitMode = bits64 ? BitMode.X64 : BitMode.X86;
     LoadSystem = LoadSystem.NetCore;
     var baseFolder =
       Path.Combine(
@@ -178,7 +261,7 @@ public class AssemblyFileCollection
         $"The requested framework was not found (not installed?): {frameworkFolder}");
     }
     var frameworkDirectory = new DirectoryInfo(frameworkFolder);
-    var versionedDirectories = 
+    var versionedDirectories =
       frameworkDirectory.EnumerateDirectories()
       .Where(d => Version.TryParse(d.Name, out var fdv) && fdv.Major == version.Major && fdv >= version)
       .ToList();
@@ -188,10 +271,15 @@ public class AssemblyFileCollection
         $"No framework matching version '{version}' found in framework folder {frameworkFolder}");
     }
     // in case there are multiple matches take the highest version
-    var fwFolder =
-      (versionedDirectories.MaxBy(di => Version.Parse(di.Name)))?.FullName
-      ?? throw new InvalidOperationException("Unexpected: no maximum for FW version?");
-    return AddFolder(fwFolder, false);
+    var fwFolderInfo = versionedDirectories.MaxBy(di => Version.Parse(di.Name));
+    var bitnessTag = bits64 ? "x64" : "x86";
+    var fwFolder = fwFolderInfo?.FullName ?? throw new InvalidOperationException("Unexpected: no maximum for FW version?");
+    var fwFolderTag = fwFolderInfo!.Name;
+    var fwTag = $"net-{fwFolderTag}-{bitnessTag}";
+    List<string> tags = [
+      $"{frameworkName} ({fwTag})",
+    ];
+    return AddFolder(fwFolder, false, tags);
   }
 
   /// <summary>
@@ -240,24 +328,24 @@ public class AssemblyFileCollection
   /// <returns>
   /// The number of DLLs added
   /// </returns>
-  public int AddDotnetFramework(bool bits64 = true, string runtimeprefix = "4.0")
+  public int AddDotnetFramework(bool bits64 = true, string runtimeprefix = "v4.0")
   {
     if(LoadSystem == LoadSystem.NetCore)
     {
       throw new InvalidOperationException(
         "Cannot include .NET Framework: already comitted to .NET Core and its descendants");
     }
-    if(bits64 && BitMode == BitMode.Bit32)
+    if(bits64 && BitMode == BitMode.X86)
     {
       throw new InvalidOperationException(
         "Cannot include 64 bit .NET Framework: already committed to 32 bit");
     }
-    if(!bits64 && BitMode == BitMode.Bit64)
+    if(!bits64 && BitMode == BitMode.X64)
     {
       throw new InvalidOperationException(
         "Cannot include 32 bit .NET Framework: already committed to 64 bit");
     }
-    BitMode = bits64 ? BitMode.Bit64 : BitMode.Bit32;
+    BitMode = bits64 ? BitMode.X64 : BitMode.X86;
     LoadSystem = LoadSystem.NetFramework;
     var basePath = Path.Combine(
       Environment.GetFolderPath(Environment.SpecialFolder.Windows),
@@ -286,7 +374,13 @@ public class AssemblyFileCollection
     {
       frameworkFolder = frameworks[0].FullName;
     }
-    return AddFolder(frameworkFolder, true);
+    var bitnessTag = bits64 ? "x64" : "x86";
+    var fwFolderTag = Path.GetFileName(frameworkFolder);
+    var fwTag = $"FW-{fwFolderTag}-{bitnessTag}";
+    List<string> tags = [
+      fwTag,
+    ];
+    return AddFolder(frameworkFolder, true, tags);
   }
 
   /// <summary>
@@ -301,19 +395,19 @@ public class AssemblyFileCollection
   /// <returns>
   /// The number of assemblies added
   /// </returns>
-  public int AddGac(BitMode bitMode = BitMode.Bit64)
+  public int AddGac(BitMode bitMode = BitMode.X64)
   {
     if(LoadSystem == LoadSystem.NetCore)
     {
       throw new InvalidOperationException(
         "Cannot include GAC: already comitted to .NET Core (not .NET Framework)");
     }
-    if(bitMode == BitMode.Bit32 && BitMode == BitMode.Bit64)
+    if(bitMode == BitMode.X86 && BitMode == BitMode.X64)
     {
       throw new InvalidOperationException(
         "Cannot include 32 bit GAC: already committed to 64 bit GAC");
     }
-    if(bitMode == BitMode.Bit64 && BitMode == BitMode.Bit32)
+    if(bitMode == BitMode.X64 && BitMode == BitMode.X86)
     {
       throw new InvalidOperationException(
         "Cannot include 64 bit GAC: already committed to 32 bit GAC");
@@ -329,14 +423,14 @@ public class AssemblyFileCollection
       "assembly");
     var count = 0;
     // Add neutral GAC content
-    count += AddFolder(Path.Combine(basePath, "GAC_MSIL"), true);
-    if(bitMode == BitMode.Bit64)
+    count += AddFolder(Path.Combine(basePath, "GAC_MSIL"), true, ["GAC_MSIL"]);
+    if(bitMode == BitMode.X64)
     {
-      count += AddFolder(Path.Combine(basePath, "GAC_64"), true);
+      count += AddFolder(Path.Combine(basePath, "GAC_64"), true, ["GAC_64"]);
     }
-    if(bitMode == BitMode.Bit32)
+    if(bitMode == BitMode.X86)
     {
-      count += AddFolder(Path.Combine(basePath, "GAC_32"), true);
+      count += AddFolder(Path.Combine(basePath, "GAC_32"), true, ["GAC_32"]);
     }
     return count;
   }
@@ -347,8 +441,9 @@ public class AssemblyFileCollection
   /// it, either a *.config file (.NET Framework) or a *.runtimeconfiguration.json (modern .NET)
   /// </summary>
   /// <param name="seedAssembly"></param>
+  /// <param name="seedTag"></param>
   /// <returns></returns>
-  public int Seed(string seedAssembly)
+  public int Seed(string seedAssembly, string seedTag = "application")
   {
     if(!File.Exists(seedAssembly))
     {
@@ -368,14 +463,14 @@ public class AssemblyFileCollection
       }
       else
       {
-        return SeedClassic(seedAssembly, classicProbe);
+        return SeedClassic(seedAssembly, classicProbe, seedTag);
       }
     }
     else
     {
       if(modernExists)
       {
-        return SeedModern(seedAssembly, modernProbe);
+        return SeedModern(seedAssembly, modernProbe, seedTag);
       }
       else
       {
@@ -385,41 +480,38 @@ public class AssemblyFileCollection
     }
   }
 
-  private int SeedClassic(string seedAssembly, string configFile)
+  private int SeedClassic(string seedAssembly, string configFile, string seedTag)
   {
     var ccf = new ClassicConfigFile(configFile);
-
-    Console.WriteLine($"DBG: Supported runtime = {ccf.SupportedRuntime}");
-    Console.WriteLine($"Found {ccf.PrivatePathFolders.Count} private paths");
-    foreach(var ppf in ccf.PrivatePathFolders)
+    var count = 0;
+    count += AddDotnetFramework(bits64: true, runtimeprefix: ccf.SupportedRuntime);
+    count += AddFile(seedAssembly, [seedTag]) ? 1 : 0;
+    count += AddFolder(ccf.BasePath, false, [seedTag]);
+    foreach(var ppe in ccf.PrivatePathEntries)
     {
-      Console.WriteLine($"  {ppf}");
+      var ppf = Path.Combine(ccf.BasePath, ppe);
+      count += AddFolder(ppf, false, [$"{seedTag}/{ppe}"]);
     }
-
-    throw new NotImplementedException(
-      $"NYI: SeedClassic({seedAssembly}, {configFile})"); 
+    return count;
   }
 
-  private int SeedModern(string seedAssembly, string configFile)
+  private int SeedModern(string seedAssembly, string configFile, string seedTag)
   {
     // It is quite likely that seedAssembly is not an assembly at all but
-    // a stub executable. Verify that first and use the *.dll instead
-    if(seedAssembly.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+    // a shim executable. Verify that case first and use the *.dll instead
+    if(seedAssembly.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
+      && !AsmReflection.TryGetAssemblyName(seedAssembly, out _))
     {
-      if(!AsmReflection.TryGetAssemblyName(seedAssembly, out var assemblyName))
+      var dll = Path.ChangeExtension(seedAssembly, ".dll");
+      if(File.Exists(dll))
       {
-        var dll = Path.ChangeExtension(seedAssembly, ".dll");
-        if(File.Exists(dll))
-        {
-          seedAssembly = dll;
-        }
-        else
-        {
-          throw new InvalidOperationException(
-            $"The given file is not an assembly, and the expected related DLL file does not exist: {dll}");
-        }
+        seedAssembly = dll;
       }
-      // else: nothing to see here - it was an assembly after all
+      else
+      {
+        throw new InvalidOperationException(
+          $"The given file is not an assembly, and the expected related DLL file does not exist: {dll}");
+      }
     }
     throw new NotImplementedException(
       $"NYI: SeedModern({seedAssembly}, {configFile})");

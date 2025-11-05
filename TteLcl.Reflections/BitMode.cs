@@ -19,10 +19,10 @@ public enum BitMode
   /// <summary>
   /// Expect 32 bit assemblies, reject 64 bit assemblies
   /// </summary>
-  Bit32 = 1,
+  X86 = 1,
 
   /// <summary>
   /// Expect 64 bit assemblies, reject 32 bit assemblies
   /// </summary>
-  Bit64 = 2,
+  X64 = 2,
 }

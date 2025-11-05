@@ -17,7 +17,7 @@ namespace TteLcl.Reflections;
 /// <summary>
 /// Caches information about a potential assembly file
 /// </summary>
-public class AssemblyFileInfo: IEquatable<AssemblyFileInfo>
+public sealed class AssemblyFileInfo: IEquatable<AssemblyFileInfo>
 {
   private AssemblyName? _assemblyName;
   private bool _checked;

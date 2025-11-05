@@ -15,9 +15,39 @@ type private Options = {
 let private runCheck o =
   let afc = new AssemblyFileCollection()
   for a in o.Assemblies do
-    cp $"Adding \fg{a}\f0."
+    cp $"Adding \fg{a}\f0..."
     let count = afc.Seed(a)
-    cp "  Added \fb{count}\f0 entries"
+    cp $"  Added \fb{count}\f0 entries"
+  let byTag = afc.GetAssembliesByTag()
+  cp "Prepared assemblies by tag:"
+  for kvp in byTag do
+    let tag = kvp.Key
+    let count = kvp.Value.Count
+    cp $"  \fb{count,5}\f0  {tag}"
+  cp "Checking for ambiguous registrations:"
+  let ambiguousRegistrations =
+    afc.AssembliesByName
+    |> Seq.map (fun kvp -> (kvp.Key, kvp.Value))
+    |> Seq.filter (fun (_, infos) -> infos.Count > 1)
+    |> Seq.toArray
+  if ambiguousRegistrations.Length = 0 then
+    cp "\fgNo ambiguities found\f0."
+  else
+    cp $"\fb{ambiguousRegistrations.Length}\fy ambiguous names found\f0:"
+    if verbose |> not then
+      cp "  (pass \fg-v\f0 to include versions)"
+    for (name, infos) in ambiguousRegistrations do
+      cp $"  \fo{name}\f0:"
+      for info in infos do
+        let fileName = info.FileName
+        if verbose then
+          let an = info.GetAssemblyName()
+          if an = null then
+            cp $"    \fk{fileName}\f0 (\frnot an assembly\f0)"
+          else
+            cp $"    \fy{fileName}\f0 (\fc{an.Version}\f0)"
+        else
+          cp $"    {fileName}\f0"
   0
 
 let run args =
