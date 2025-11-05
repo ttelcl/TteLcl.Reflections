@@ -2,6 +2,7 @@
 
 open System
 open System.IO
+open System.Reflection
 
 open TteLcl.Reflections
 
@@ -44,6 +45,31 @@ let private runCheck o =
           cp $"    \fk{fileName}\f0 (\frnot an assembly\f0)"
         else
           cp $"    \fy{fileName}\f0 (\fc{an.Version}\f0)"
+  let assemblyDiagnostic (asm: Assembly) =
+    let asmName = asm.GetName()
+    let ok, afi = asm |> afc.TryFindByAssembly
+    if ok then
+      cp $"\fc{asmName}\f0 is loaded from \fg{afi.FileName}\f0."
+    else
+      cp $"\fo{asmName}\f0 is loaded from an unregistered location"
+  let assemblyDiagnostics assemblies =
+    for asm in assemblies do
+      asm |> assemblyDiagnostic
+  cp "Initializing assembly loader"
+  use mlc = afc.OpenLoadContext()
+  let initialAssemblies = mlc.GetAssemblies() |> Seq.toArray
+  cp $"Initial assembly count: \fb{initialAssemblies.Length}\f0."
+  let loadAssembly (a: string) =
+    let anm = Path.GetFileNameWithoutExtension(a)
+    cp $"Loading \fg{anm}\f0."
+    mlc.LoadFromAssemblyName(anm)
+  let seedAssemblies =
+    o.Assemblies
+    |> Seq.map loadAssembly
+    |> Seq.toArray
+  let postLoadAssemblies = mlc.GetAssemblies() |> Seq.toArray
+  cp $"Post load assembly count: \fb{postLoadAssemblies.Length}\f0."
+  postLoadAssemblies |> assemblyDiagnostics
   0
 
 let run args =

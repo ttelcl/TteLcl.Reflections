@@ -9,7 +9,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.Versioning;
+using System.Reflection.Metadata;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -522,6 +522,24 @@ public class AssemblyFileCollection
           $"No configuration found. Neither '{modernProbe}' nor '{classicProbe}' exist");
       }
     }
+  }
+
+  /// <summary>
+  /// Open a new <see cref="MetadataLoadContext"/> using the assemblies registered
+  /// in this collection. Don't forget to dispose it when done!
+  /// </summary>
+  /// <returns></returns>
+  public MetadataLoadContext OpenLoadContext()
+  {
+    var coreAssembly =
+      LoadSystem switch {
+        LoadSystem.NetCore => "System.Runtime",
+        LoadSystem.NetFramework => "mscorlib",
+        _ => null, // let the constructor figure it out
+      };
+    var resolver = new PathAssemblyResolver(
+      AssemblyFileInfos.Select(afi => afi.FileName));
+    return new MetadataLoadContext(resolver, coreAssembly);
   }
 
   private int SeedClassic(string seedAssembly, string configFile, string seedTag)
