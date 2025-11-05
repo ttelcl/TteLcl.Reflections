@@ -315,6 +315,50 @@ public class AssemblyFileCollection
   }
 
   /// <summary>
+  /// Try to find an already registered <see cref="AssemblyFileInfo"/> given its path
+  /// </summary>
+  /// <param name="file">
+  /// The path to the already registered assembly file
+  /// </param>
+  /// <param name="info"></param>
+  /// <returns></returns>
+  public bool TryFindByFile(
+    string file,
+    [NotNullWhen(true)] out AssemblyFileInfo? info)
+  {
+    info = null;
+    file = Path.GetFullPath(file);
+    var key = Path.GetFileNameWithoutExtension(file);
+    if(_assemblyFiles.TryGetValue(key, out var files))
+    {
+      info = files.FirstOrDefault(
+        f => f.FileName.Equals(file, StringComparison.OrdinalIgnoreCase));
+      return info != null;
+    }
+    return false;
+  }
+
+  /// <summary>
+  /// Try to find an already registered <see cref="AssemblyFileInfo"/> given its already
+  /// loaded Assembly
+  /// </summary>
+  /// <param name="assembly"></param>
+  /// <param name="info"></param>
+  /// <returns></returns>
+  public bool TryFindByAssembly(
+    Assembly assembly,
+    [NotNullWhen(true)] out AssemblyFileInfo? info)
+  {
+    var file = assembly.Location;
+    if(String.IsNullOrEmpty(file))
+    {
+      info = null;
+      return false;
+    }
+    return TryFindByFile(file, out info);
+  }
+
+  /// <summary>
   /// Add ye olde .net framework
   /// </summary>
   /// <param name="bits64">
