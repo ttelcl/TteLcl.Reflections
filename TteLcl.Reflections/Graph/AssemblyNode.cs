@@ -61,6 +61,10 @@ public class AssemblyNode: IGraphNode
   public string FullName => Key;
 
   /// <inheritdoc/>
+  [JsonProperty("label")]
+  public string Label => ShortName;
+
+  /// <inheritdoc/>
   [JsonProperty("key")]
   public string Key { get; }
 
@@ -104,10 +108,6 @@ public class AssemblyNode: IGraphNode
   [JsonIgnore]
   public string ShortName =>
     AssemblyName.Name ?? throw new InvalidOperationException("Not expecting an uninitialized assembly name");
-
-  /// <inheritdoc/>
-  [JsonIgnore]
-  public string Label => ShortName;
 
   IReadOnlySet<string> IGraphNode.Tags => Tags;
 }

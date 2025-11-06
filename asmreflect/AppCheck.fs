@@ -80,12 +80,21 @@ let private runCheck o =
     postLoadAssemblies |> assemblyDiagnostics
   if o.Dependencies |> String.IsNullOrEmpty |> not then
     cp "Initializing dependency graph"
-    let graph = new AssemblyGraph([], [])
-    for asm in postLoadAssemblies do
-      let added, node = graph.AddNode(asm, afc)
+    let builder = new AssemblyGraphLoader(afc, mlc, null)
+    for asm in initialAssemblies do
+      let added, node = builder.AddAssembly(asm)
+      ()
+    let pendingQueue = builder.SeedAssemblies(seedAssemblies);
+    cp $"Pending: \fb{pendingQueue.Count}\f0."
+    if pendingQueue.Count > 0 then
+      let pendingBefore = pendingQueue.Count
+      let name = pendingQueue.Peek().ShortName
+      let added = builder.ConnectNext(pendingQueue)
+      cp $"\fk{pendingBefore,3}\f0 -> \fb{pendingQueue.Count}\f0  \fc+{added}\f0  \fg{name}\f0."
       ()
     let fileName = $"{o.Dependencies}.graph.json"
     do
+      let graph = builder.Graph
       use w = fileName |> startFile
       let json = JsonConvert.SerializeObject(graph, Formatting.Indented)
       w.WriteLine(json)

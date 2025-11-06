@@ -60,16 +60,22 @@ public class AssemblyGraph
   public IReadOnlyCollection<AssemblyNode> Nodes => _nodes.Values;
 
   /// <summary>
+  /// The collection of edges, including their tags
+  /// </summary>
+  [JsonProperty("edges")]
+  public IReadOnlyCollection<AssemblyEdge> Edges => _edges;
+
+  /// <summary>
   /// The mapping of full assembly names to assembly nodes
   /// </summary>
   [JsonIgnore]
   public IReadOnlyDictionary<string, AssemblyNode> NodeMap => _nodes;
 
   /// <summary>
-  /// The collection of edges, including their tags
+  /// The mapping of full assembly names to fully connected node models
   /// </summary>
-  [JsonProperty("edges")]
-  public IReadOnlyCollection<AssemblyEdge> Edges => _edges;
+  [JsonIgnore]
+  public IReadOnlyDictionary<string, NodeModel> NodeModels => _nodeModels;
 
   /// <summary>
   /// Add an <see cref="AssemblyNode"/> if it isn't already present.
