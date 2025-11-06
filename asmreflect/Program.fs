@@ -18,8 +18,10 @@ let rec run arglist =
     0  // program return status code to the operating system; 0 == "OK"
   | "check" :: rest ->
     rest |> AppCheck.run
+  | x :: _ when x.StartsWith('-') ->
+    arglist |> AppCheck.run
   | x :: _ ->
-    cp $"\frUnrecognized command \f0'\fo{x}\f0'"
+    cp $"\foUnrecognized command \f0'\fy{x}\f0'"
     cp ""
     usage ""
     1
