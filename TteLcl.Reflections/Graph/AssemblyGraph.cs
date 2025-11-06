@@ -16,18 +16,24 @@ namespace TteLcl.Reflections.Graph;
 public class AssemblyGraph
 {
   private readonly Dictionary<string, AssemblyNode> _nodes;
+  private readonly Dictionary<string, NodeModel> _nodeModels;
+  private readonly List<AssemblyEdge> _edges;
 
   /// <summary>
   /// Create a new <see cref="AssemblyGraph"/>.
   /// This is the Json deserialization constructor.
   /// </summary>
   /// <param name="nodes"></param>
+  /// <param name="edges"></param>
   /// <exception cref="InvalidOperationException"></exception>
   [JsonConstructor]
   public AssemblyGraph(
-    IEnumerable<AssemblyNode> nodes)
+    IEnumerable<AssemblyNode> nodes,
+    IEnumerable<AssemblyEdge> edges)
   {
     _nodes = new Dictionary<string, AssemblyNode>();
+    _nodeModels = new Dictionary<string, NodeModel>();
+    _edges = new List<AssemblyEdge>();
     foreach(var node in nodes)
     {
       var key = node.Key;
@@ -37,6 +43,12 @@ public class AssemblyGraph
           $"Duplicate node '{key}'");
       }
       _nodes.Add(key, node);
+      var model = new NodeModel(node);
+      _nodeModels.Add(key, model);
+    }
+    foreach(var edge in edges)
+    {
+      AddEdge(edge);
     }
   }
 
@@ -54,6 +66,12 @@ public class AssemblyGraph
   public IReadOnlyDictionary<string, AssemblyNode> NodeMap => _nodes;
 
   /// <summary>
+  /// The collection of edges, including their tags
+  /// </summary>
+  [JsonProperty("edges")]
+  public IReadOnlyCollection<AssemblyEdge> Edges => _edges;
+
+  /// <summary>
   /// Add an <see cref="AssemblyNode"/> if it isn't already present.
   /// Returns the node in the graph (either <paramref name="node"/> if it was new
   /// or the existing node)
@@ -65,7 +83,9 @@ public class AssemblyGraph
     {
       return existingNode;
     }
-    _nodes[node.Key] = node;
+    _nodes.Add(node.Key, node);
+    var model = new NodeModel(node);
+    _nodeModels.Add(node.Key, model);
     return node;
   }
 
@@ -109,5 +129,37 @@ public class AssemblyGraph
     return true;
   }
 
+  /// <summary>
+  /// Get the full model for an <see cref="AssemblyNode"/>
+  /// </summary>
+  /// <param name="node"></param>
+  /// <returns></returns>
+  public NodeModel ModelForNode(AssemblyNode node)
+  {
+    return _nodeModels[node.Key];
+  }
 
+  /// <summary>
+  /// Add an edge
+  /// </summary>
+  /// <param name="edge"></param>
+  /// <exception cref="InvalidOperationException"></exception>
+  public void AddEdge(AssemblyEdge edge)
+  {
+    if(!_nodes.TryGetValue(edge.DependentKey, out var sourceNode))
+    {
+      throw new InvalidOperationException(
+        $"Invalid edge: Source node unknown: {edge.DependentKey}");
+    }
+    if(!_nodes.TryGetValue(edge.DependencyKey, out var targetNode))
+    {
+      throw new InvalidOperationException(
+        $"Invalid edge: Target node unknown: {edge.DependencyKey}");
+    }
+    var sourceModel = _nodeModels[sourceNode.Key];
+    var targetModel = _nodeModels[targetNode.Key];
+    _edges.Add(edge);
+    sourceModel.ConnectTarget(edge, targetModel);
+    targetModel.ConnectSource(edge, sourceModel);
+  }
 }

@@ -80,7 +80,7 @@ let private runCheck o =
     postLoadAssemblies |> assemblyDiagnostics
   if o.Dependencies |> String.IsNullOrEmpty |> not then
     cp "Initializing dependency graph"
-    let graph = new AssemblyGraph([])
+    let graph = new AssemblyGraph([], [])
     for asm in postLoadAssemblies do
       let added, node = graph.AddNode(asm, afc)
       ()
