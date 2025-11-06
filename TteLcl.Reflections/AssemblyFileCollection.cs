@@ -13,6 +13,8 @@ using System.Reflection.Metadata;
 using System.Text;
 using System.Threading.Tasks;
 
+using TteLcl.Reflections.Graph;
+
 namespace TteLcl.Reflections;
 
 /// <summary>
@@ -356,6 +358,42 @@ public class AssemblyFileCollection
       return false;
     }
     return TryFindByFile(file, out info);
+  }
+
+  /// <summary>
+  /// Given an <see cref="Assembly"/>, try to create a new <see cref="AssemblyNode"/> instance.
+  /// This will fail (and return false) if the assembly is not known in this collection.
+  /// </summary>
+  /// <param name="assembly">
+  /// The assembly to look up and create a node for
+  /// </param>
+  /// <param name="node">
+  /// The resulting <see cref="AssemblyNode"/> upon success
+  /// </param>
+  /// <returns>
+  /// True upon success, false if the assembly was not known
+  /// </returns>
+  public bool TryCreateNode(
+    Assembly assembly,
+    [NotNullWhen(true)] out AssemblyNode? node)
+  {
+    if(TryFindByAssembly(assembly, out var afi))
+    {
+      if(!AssemblyTags.TryGetValue(afi, out var tags))
+      {
+        tags = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+      }
+      var primaryTag = tags.FirstOrDefault();
+      var an = assembly.GetName();
+      node = new AssemblyNode(
+        an.FullName,
+        afi.FileName,
+        primaryTag,
+        tags);
+      return true;
+    }
+    node = null;
+    return false;
   }
 
   /// <summary>

@@ -4,7 +4,10 @@ open System
 open System.IO
 open System.Reflection
 
+open Newtonsoft.Json
+
 open TteLcl.Reflections
+open TteLcl.Reflections.Graph
 
 open ColorPrint
 open CommonTools
@@ -75,6 +78,19 @@ let private runCheck o =
   if o.Check then
     cp $"Post preload assembly count: \fb{postLoadAssemblies.Length}\f0."
     postLoadAssemblies |> assemblyDiagnostics
+  if o.Dependencies |> String.IsNullOrEmpty |> not then
+    cp "Initializing dependency graph"
+    let graph = new AssemblyGraph([])
+    for asm in postLoadAssemblies do
+      let added, node = graph.AddNode(asm, afc)
+      ()
+    let fileName = $"{o.Dependencies}.graph.json"
+    do
+      use w = fileName |> startFile
+      let json = JsonConvert.SerializeObject(graph, Formatting.Indented)
+      w.WriteLine(json)
+    fileName |> finishFile
+    ()
   0
 
 let run args =
