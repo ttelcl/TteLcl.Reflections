@@ -11,6 +11,8 @@ open CommonTools
 
 type private Options = {
   Assemblies: string list
+  Check: bool
+  Dependencies: string
 }
 
 let private runCheck o =
@@ -20,45 +22,47 @@ let private runCheck o =
     cp $"Adding \fg{a}\f0..."
     let count = afc.Seed(a, tag)
     cp $"  Added \fb{count}\f0 candidate assemblies"
-  let byTag = afc.GetAssembliesByTag()
-  cp "Prepared assemblies by tag:"
-  for kvp in byTag do
-    let tag = kvp.Key
-    let count = kvp.Value.Count
-    cp $"  \fb{count,5}\f0  {tag}"
-  cp "Checking for ambiguous registrations:"
-  let ambiguousRegistrations =
-    afc.AssembliesByName
-    |> Seq.map (fun kvp -> (kvp.Key, kvp.Value))
-    |> Seq.filter (fun (_, infos) -> infos.Count > 1)
-    |> Seq.toArray
-  if ambiguousRegistrations.Length = 0 then
-    cp "\fgNo ambiguities found\f0."
-  else
-    cp $"\fb{ambiguousRegistrations.Length}\fy ambiguous names found\f0:"
-    for (name, infos) in ambiguousRegistrations do
-      cp $"  \fo{name}\f0:"
-      for info in infos do
-        let fileName = info.FileName
-        let an = info.GetAssemblyName()
-        if an = null then
-          cp $"    \fk{fileName}\f0 (\frnot an assembly\f0)"
-        else
-          cp $"    \fy{fileName}\f0 (\fc{an.Version}\f0)"
+  if o.Check then
+    let byTag = afc.GetAssembliesByTag()
+    cp "Prepared assemblies by tag:"
+    for kvp in byTag do
+      let tag = kvp.Key
+      let count = kvp.Value.Count
+      cp $"  \fb{count,5}\f0  {tag}"
+  if o.Check then
+    cp "Checking for ambiguous registrations:"
+    let ambiguousRegistrations =
+      afc.AssembliesByName
+      |> Seq.map (fun kvp -> (kvp.Key, kvp.Value))
+      |> Seq.filter (fun (_, infos) -> infos.Count > 1)
+      |> Seq.toArray
+    if ambiguousRegistrations.Length = 0 then
+      cp "\fgNo ambiguities found\f0."
+    else
+      cp $"\fb{ambiguousRegistrations.Length}\fy ambiguous names found\f0:"
+      for (name, infos) in ambiguousRegistrations do
+        cp $"  \fo{name}\f0:"
+        for info in infos do
+          let fileName = info.FileName
+          let an = info.GetAssemblyName()
+          if an = null then
+            cp $"    \fk{fileName}\f0 (\frnot an assembly\f0)"
+          else
+            cp $"    \fy{fileName}\f0 (\fc{an.Version}\f0)"
   let assemblyDiagnostic (asm: Assembly) =
     let asmName = asm.GetName()
     let ok, afi = asm |> afc.TryFindByAssembly
     if ok then
-      cp $"\fc{asmName}\f0 is loaded from \fg{afi.FileName}\f0."
+      cp $"  \fc{asmName}\f0 is loaded from \fg{afi.FileName}\f0."
     else
-      cp $"\fo{asmName}\f0 is loaded from an unregistered location"
+      cp $"  \fo{asmName}\f0 is loaded from an \frunregistered location\f0."
   let assemblyDiagnostics assemblies =
     for asm in assemblies do
       asm |> assemblyDiagnostic
-  cp "Initializing assembly loader"
+  // cp "Initializing assembly loader"
   use mlc = afc.OpenLoadContext()
   let initialAssemblies = mlc.GetAssemblies() |> Seq.toArray
-  cp $"Initial assembly count: \fb{initialAssemblies.Length}\f0."
+  // cp $"Initial assembly count: \fb{initialAssemblies.Length}\f0."
   let loadAssembly (a: string) =
     let anm = Path.GetFileNameWithoutExtension(a)
     cp $"Loading \fg{anm}\f0."
@@ -68,8 +72,9 @@ let private runCheck o =
     |> Seq.map loadAssembly
     |> Seq.toArray
   let postLoadAssemblies = mlc.GetAssemblies() |> Seq.toArray
-  cp $"Post load assembly count: \fb{postLoadAssemblies.Length}\f0."
-  postLoadAssemblies |> assemblyDiagnostics
+  if o.Check then
+    cp $"Post preload assembly count: \fb{postLoadAssemblies.Length}\f0."
+    postLoadAssemblies |> assemblyDiagnostics
   0
 
 let run args =
@@ -88,6 +93,11 @@ let run args =
       else
         // let assembly = assembly |> Path.GetFullPath
         rest |> parseMore {o with Assemblies = assembly :: o.Assemblies}
+    | "-check" :: rest ->
+      rest |> parseMore {o with Check = true}
+    | "-deps" :: filetag :: rest
+    | "-dependencies" :: filetag :: rest ->
+      rest |> parseMore {o with Dependencies = filetag}
     | [] ->
       if o.Assemblies |> List.isEmpty then
         cp "\foNo assembly arguments (\fg-a\fo) given\f0."
@@ -99,6 +109,8 @@ let run args =
       None 
   let oo = args |> parseMore {
     Assemblies = []
+    Check = false
+    Dependencies = null
   }
   match oo with
   | Some(o) ->
