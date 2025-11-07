@@ -86,11 +86,12 @@ let private runCheck o =
       ()
     let pendingQueue = builder.SeedAssemblies(seedAssemblies);
     cp $"Pending: \fb{pendingQueue.Count}\f0."
-    if pendingQueue.Count > 0 then
+    while pendingQueue.Count > 0 do
       let pendingBefore = pendingQueue.Count
-      let name = pendingQueue.Peek().ShortName
+      let node = pendingQueue.Peek()
+      let name = node.ShortName
       let added = builder.ConnectNext(pendingQueue)
-      cp $"\fk{pendingBefore,3}\f0 -> \fb{pendingQueue.Count}\f0  \fc+{added}\f0  \fg{name}\f0."
+      cp $"\fk{pendingBefore,3}\f0 -> \fb{pendingQueue.Count,3}\f0  \fc+{added,3}\f0  \fg{name,-60} \fy{node.Tag}\f0."
       ()
     let fileName = $"{o.Dependencies}.graph.json"
     do
