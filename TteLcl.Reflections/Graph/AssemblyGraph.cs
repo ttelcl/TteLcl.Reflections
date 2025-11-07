@@ -150,7 +150,7 @@ public class AssemblyGraph
   /// </summary>
   /// <param name="edge"></param>
   /// <exception cref="InvalidOperationException"></exception>
-  public void AddEdge(AssemblyEdge edge)
+  public bool AddEdge(AssemblyEdge edge)
   {
     if(!_nodes.TryGetValue(edge.DependentKey, out var sourceNode))
     {
@@ -164,8 +164,14 @@ public class AssemblyGraph
     }
     var sourceModel = _nodeModels[sourceNode.Key];
     var targetModel = _nodeModels[targetNode.Key];
+    if(sourceModel.Targets.ContainsKey(targetModel.Key))
+    {
+      // Attempt to double connect. Maybe because of an aliased assembly. Abort!
+      return false;
+    }
     _edges.Add(edge);
     sourceModel.ConnectTarget(edge, targetModel);
     targetModel.ConnectSource(edge, sourceModel);
+    return true;
   }
 }

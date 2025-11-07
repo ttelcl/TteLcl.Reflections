@@ -94,7 +94,7 @@ public class AssemblyGraphLoader
         queue.Enqueue(node);
       }
     }
-    return queue; 
+    return queue;
   }
 
   /// <summary>
@@ -141,6 +141,7 @@ public class AssemblyGraphLoader
     var dependencyNames = assembly.GetReferencedAssemblies();
     var dependentName = node.FullName;
     var count = 0;
+    // Trace.TraceInformation($"Connecting {dependentName} ... ");
     foreach(var dependencyName in dependencyNames)
     {
       if(nodeName == dependencyName)
@@ -159,14 +160,21 @@ public class AssemblyGraphLoader
       }
       var dependency = LoadContext.LoadFromAssemblyName(dependencyName); // possibly a true load
       var isnew = AddAssembly(dependency, out var dependencyNode);
+      // Trace.TraceInformation($" ({isnew})  -->  {dependencyName} ({dependency.Location}, {dependency.FullName})");
       if(isnew)
       {
         pendingNodes.Enqueue(dependencyNode);
       }
       // Initialize without tags
       var edge = new AssemblyEdge(dependentName, dependencyNode.FullName, []);
-      Graph.AddEdge(edge);
-      count++;
+      if(Graph.AddEdge(edge))
+      {
+        count++;
+      }
+      else
+      {
+        Trace.TraceInformation($"(ignoring aliased / duplicate edge {node.ShortName} -> {dependencyNode.ShortName})");
+      }
     }
     return count;
   }
