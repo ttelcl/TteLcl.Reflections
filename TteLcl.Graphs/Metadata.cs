@@ -214,4 +214,71 @@ public class Metadata: IHasMetadata
       o["keytags"] = ktags;
     }
   }
+
+  /// <summary>
+  /// Add properties and tags from their JSON representation in
+  /// <paramref name="o"/>, reversing <see cref="AddToObject"/>.
+  /// </summary>
+  /// <param name="o">
+  /// The object to get property and tag values from
+  /// </param>
+  /// <param name="exclude">
+  /// Names of properties in <paramref name="o"/> to skip. Names
+  /// "tags" and "keytags" will be skipped too.
+  /// </param>
+  public void FillFromObject(JObject o, IEnumerable<string> exclude)
+  {
+    var excludeSet = exclude.ToHashSet();
+    excludeSet.UnionWith(["keytags", "tags"]);
+    foreach(var prop in o.Properties())
+    {
+      if(excludeSet.Contains(prop.Name))
+      {
+        continue;
+      }
+      if(prop.Value is JValue v && v.Type == JTokenType.String)
+      {
+        var s = (string)v!;
+        Properties[prop.Name] = s;
+      }
+      // else ???
+    }
+    var keytagsToken = o["keytags"];
+    if(keytagsToken is JObject keytags)
+    {
+      foreach(var prop in keytags.Properties())
+      {
+        if(prop.Value is JArray a1 && a1.Count > 0)
+        {
+          var kt = this[prop.Name];
+          foreach(var tag in a1)
+          {
+            if(tag is JValue v && v.Type == JTokenType.String)
+            {
+              var s = (string)v!;
+              kt.Add(s);
+            }
+          }
+        }
+        else if(prop.Value is JValue v && v.Type == JTokenType.String)
+        {
+          var s = (string)v!;
+          this[prop.Name].Add(s);
+        }
+      }
+    }
+    var tagsToken = o["tags"];
+    if(tagsToken is JArray a2)
+    {
+      foreach(var tag in a2)
+      {
+        var kt = this[""];
+        if(tag is JValue v && v.Type == JTokenType.String)
+        {
+          var s = (string)v!;
+          kt.Add(s);
+        }
+      }
+    }
+  }
 }
