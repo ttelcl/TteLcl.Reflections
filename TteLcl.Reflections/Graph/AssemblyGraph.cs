@@ -8,6 +8,8 @@ using System.Xml.Linq;
 
 using Newtonsoft.Json;
 
+using TteLcl.Graphs;
+
 namespace TteLcl.Reflections.Graph;
 
 /// <summary>
@@ -173,5 +175,52 @@ public class AssemblyGraph
     sourceModel.ConnectTarget(edge, targetModel);
     targetModel.ConnectSource(edge, sourceModel);
     return true;
+  }
+
+  /// <summary>
+  /// Create a new generic graph from this specialized one
+  /// </summary>
+  /// <returns></returns>
+  public TteLcl.Graphs.Graph ExportAsGraph()
+  {
+    var graph = new TteLcl.Graphs.Graph();
+    // First pass: create nodes
+    foreach(var nodeModel in NodeModels.Values)
+    {
+      var anode = nodeModel.Node;
+      var name = anode.ShortName;
+      var node = graph.AddNode(name);
+      var meta = node.Metadata;
+      meta.SetProperty("version", anode.AssemblyName.Version?.ToString());
+      meta.SetProperty("fullname", anode.FullName);
+      meta.SetProperty("file", anode.FileName);
+      meta.SetProperty("tag", anode.Tag);
+      foreach(var tag in anode.Tags)
+      {
+        var parts = tag.Split("::", 2);
+        if(parts.Length == 2)
+        {
+          meta.AddTag(parts[0], parts[1]);
+        }
+        else
+        {
+          meta.AddTag(tag);
+        }
+      }
+    }
+    // second pass
+    foreach(var nodeModel in NodeModels.Values)
+    {
+      var source = graph.Nodes[nodeModel.Node.ShortName];
+      foreach(var targetEdge in nodeModel.Targets.Values)
+      {
+        
+        var targetName = targetEdge.Target.Node.ShortName;
+        var target = graph.Nodes[targetName];
+        var edge = source.Connect(target);
+        // no metadata to add yet
+      }
+    }
+    return graph;
   }
 }

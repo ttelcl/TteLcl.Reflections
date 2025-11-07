@@ -93,11 +93,20 @@ let private runCheck o =
       let added = builder.ConnectNext(pendingQueue)
       cp $"\fk{pendingBefore,3}\f0 -> \fb{pendingQueue.Count,3}\f0  \fc+{added,3}\f0  \fg{name,-60} \fy{node.Tag}\f0."
       ()
-    let fileName = $"{o.Dependencies}.graph.json"
+    let fileName = $"{o.Dependencies}.asm-graph.json"
     do
       let graph = builder.Graph
       use w = fileName |> startFile
       let json = JsonConvert.SerializeObject(graph, Formatting.Indented)
+      w.WriteLine(json)
+    fileName |> finishFile
+    cp "Converting to generic graph model"
+    let graph = builder.Graph.ExportAsGraph()
+    let fileName = $"{o.Dependencies}.graph.json"
+    do
+      let jgraph = graph.Serialize()
+      use w = fileName |> startFile
+      let json = JsonConvert.SerializeObject(jgraph, Formatting.Indented)
       w.WriteLine(json)
     fileName |> finishFile
     ()
