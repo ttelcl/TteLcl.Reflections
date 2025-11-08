@@ -11,7 +11,7 @@ namespace TteLcl.Graphs;
 /// <summary>
 /// A generic node in a <see cref="Graph"/>
 /// </summary>
-public class GraphNode: IHasMetadata
+public class GraphNode: IHasMetadata, IHasKey
 {
   private readonly Dictionary<string, GraphEdge> _sources;
   private readonly Dictionary<string, GraphEdge> _targets;
