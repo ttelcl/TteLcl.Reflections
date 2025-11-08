@@ -71,6 +71,66 @@ public class Graph: IHasMetadata
   }
 
   /// <summary>
+  /// Remove nodes in the given key set, as well as any edges to or from those nodes
+  /// in the remaining nodes
+  /// </summary>
+  /// <param name="nodeKeys"></param>
+  public void RemoveNodes(IReadOnlySet<string> nodeKeys)
+  {
+    foreach(var key in nodeKeys)
+    {
+      _nodes.Remove(key);
+    }
+    foreach(var node in _nodes.Values)
+    {
+      node.RemoveEdges(nodeKeys);
+    }
+  }
+
+  /// <summary>
+  /// Remove nodes in the given key set, as well as any edges to or from those nodes
+  /// in the remaining nodes
+  /// </summary>
+  /// <param name="nodeKeys"></param>
+  public void RemoveNodes(IEnumerable<string> nodeKeys)
+  {
+    RemoveNodes(nodeKeys.ToHashSet(StringComparer.OrdinalIgnoreCase));
+  }
+
+  /// <summary>
+  /// Return nodes that have the specified <paramref name="tag"/>
+  /// (or keyed tag <paramref name="tagkey"/>::<paramref name="tag"/>)
+  /// </summary>
+  /// <param name="tag">
+  /// The tag to find
+  /// </param>
+  /// <param name="tagkey">
+  /// The key of the keyed tag to look for (the default "" is the key for
+  /// 'unkeyed' tags)
+  /// </param>
+  /// <returns></returns>
+  public IEnumerable<GraphNode> FindTaggedNodes(string tag, string tagkey = "")
+  {
+    return Nodes.Values.Where(node => node.HasTag(tagkey, tag));
+  }
+
+  /// <summary>
+  /// Return nodes that have the specified <paramref name="tags"/>
+  /// </summary>
+  /// <param name="tags">
+  /// The tags to find
+  /// </param>
+  /// <param name="tagkey">
+  /// The key of the keyed tags to look for (the default "" is the key for
+  /// 'unkeyed' tags)
+  /// </param>
+  /// <returns></returns>
+  public IEnumerable<GraphNode> FindTaggedNodes(IEnumerable<string> tags, string tagkey = "")
+  {
+    return Nodes.Values.Where(node => node.HasAnyTag(tagkey, tags));
+  }
+
+  /// <summary>
   /// Serialize the information in this graph into JSON form
   /// </summary>
   /// <returns></returns>
@@ -91,8 +151,21 @@ public class Graph: IHasMetadata
   }
 
   /// <summary>
+  /// Serialize this graph to a file
+  /// </summary>
+  /// <param name="fileName">
+  /// The file name to save to
+  /// </param>
+  public void Serialize(string fileName)
+  {
+    var o = Serialize();
+    var json = JsonConvert.SerializeObject(o, Formatting.Indented);
+    File.WriteAllText(fileName, json + Environment.NewLine);
+  }
+
+  /// <summary>
   /// Create a new <see cref="Graph"/> by parsing a JSON object of the same
-  /// shape as produced by <see cref="Serialize"/>
+  /// shape as produced by <see cref="Serialize()"/>
   /// </summary>
   /// <param name="o">
   /// The JSON to parse, as a <see cref="JObject"/>
@@ -147,7 +220,7 @@ public class Graph: IHasMetadata
 
   /// <summary>
   /// Create a new <see cref="Graph"/> by parsing a JSON object of the same
-  /// shape as produced by <see cref="Serialize"/>
+  /// shape as produced by <see cref="Serialize()"/>
   /// </summary>
   /// <param name="json">
   /// The JSON to parse, as a string
@@ -164,7 +237,7 @@ public class Graph: IHasMetadata
 
   /// <summary>
   /// Create a new <see cref="Graph"/> by parsing a JSON object of the same
-  /// shape as produced by <see cref="Serialize"/>
+  /// shape as produced by <see cref="Serialize()"/>
   /// </summary>
   /// <param name="file">
   /// The name of the file containing the JSON text to parse

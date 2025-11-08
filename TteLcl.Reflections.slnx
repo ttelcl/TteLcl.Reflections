@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/Apps/">
     <Project Path="asmreflect/asmreflect.fsproj" Id="222e1414-a922-40a6-afd1-ff43d962e584" />
+    <Project Path="graphops/graphops.fsproj" Id="b35ad4e1-0de3-4503-aa28-6d20af4fae7f" />
     <Project Path="lowreflect/lowreflect.fsproj" Id="a706f62c-1019-47b0-9eb5-17db98fe6958" />
   </Folder>
   <Folder Name="/Libraries/">

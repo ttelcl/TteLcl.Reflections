@@ -98,6 +98,39 @@ public class Metadata: IHasMetadata
   }
 
   /// <summary>
+  /// Returns true if this metadata has at least one of the specified
+  /// keyed tags
+  /// </summary>
+  /// <param name="key">
+  /// The tag key (category). Pass "" for unkeyed tags
+  /// </param>
+  /// <param name="tags">
+  /// The tags to find
+  /// </param>
+  /// <returns></returns>
+  public bool HasAnyTag(string key, IEnumerable<string> tags)
+  {
+    if(TryGetTags(key, out var keytags))
+    {
+      return keytags.Overlaps(tags);
+    }
+    return false;
+  }
+
+  /// <summary>
+  /// Returns true if this metadata has at least one of the specified
+  /// unkeyed tags
+  /// </summary>
+  /// <param name="tags">
+  /// The tags to find
+  /// </param>
+  /// <returns></returns>
+  public bool HasAnyTag(IEnumerable<string> tags)
+  {
+    return HasAnyTag("", tags);
+  }
+
+  /// <summary>
   /// Try accessing an existing keyed tag set for reading purposes.
   /// Empty tag sets are treated as if not existing.
   /// For writing purposes use <see cref="this[string]"/> instead.

@@ -89,6 +89,20 @@ public class GraphNode: IHasMetadata, IHasKey
   }
 
   /// <summary>
+  /// Remove any incoming and outgoing edges to or from nodes in the given
+  /// set of node keys
+  /// </summary>
+  /// <param name="remoteNodeKeys"></param>
+  public void RemoveEdges(IReadOnlySet<string> remoteNodeKeys)
+  {
+    foreach(var remoteNodeKey in remoteNodeKeys)
+    {
+      _targets.Remove(remoteNodeKey);
+      _sources.Remove(remoteNodeKey);
+    }
+  }
+
+  /// <summary>
   /// Return a JSON description of this node and its outgoing edges
   /// </summary>
   public JObject Serialize()

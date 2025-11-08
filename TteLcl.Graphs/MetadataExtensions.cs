@@ -29,6 +29,22 @@ public static class MetadataExtensions
   }
 
   /// <summary>
+  /// Check if the <paramref name="owner"/>'s metadata has any of the specified keyed tags
+  /// </summary>
+  public static bool HasAnyTag(this IHasMetadata owner, string key, IEnumerable<string> tags)
+  {
+    return owner.Metadata.HasAnyTag(key, tags);
+  }
+
+  /// <summary>
+  /// Check if the <paramref name="owner"/>'s metadata has any of the specified unkeyed tags
+  /// </summary>
+  public static bool HasAnyTag(this IHasMetadata owner, IEnumerable<string> tags)
+  {
+    return owner.Metadata.HasAnyTag("", tags);
+  }
+
+  /// <summary>
   /// Add the specified keyed tag to the <paramref name="owner"/>'s metadata
   /// </summary>
   public static bool AddTag(this IHasMetadata owner, string key, string tag)
