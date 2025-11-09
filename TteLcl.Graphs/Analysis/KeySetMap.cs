@@ -31,12 +31,4 @@ public class KeySetMap: MapView<string, KeySet, string>, IReadOnlyDictionary<str
   /// The underlying (mutable) host map
   /// </summary>
   public KeyMap<KeySet> Host { get; }
-
-  /// <summary>
-  /// A function that returns the set of destination node keys for the
-  /// argument node key. Functionally speaking, this is a set of edges.
-  /// </summary>
-  /// <param name="key"></param>
-  /// <returns></returns>
-  public IReadOnlyCollection<string> Edges(string key) => this[key];
 }

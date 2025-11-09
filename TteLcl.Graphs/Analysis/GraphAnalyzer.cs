@@ -83,8 +83,7 @@ public class GraphAnalyzer
   {
     if(_reachMap == null)
     {
-      var reachMap = CalculatePowerMap(TargetEdges);
-      _reachMap = new KeySetMap(reachMap);
+      _reachMap = CalculatePowerMap(TargetEdges);
     }
     return _reachMap;
   }
@@ -97,8 +96,7 @@ public class GraphAnalyzer
   {
     if(_domainMap == null)
     {
-      var domainMap = CalculatePowerMap(SourceEdges);
-      _domainMap = new KeySetMap(domainMap);
+      _domainMap = CalculatePowerMap(SourceEdges);
     }
     return _domainMap;
   }
@@ -113,7 +111,7 @@ public class GraphAnalyzer
   /// </summary>
   /// <param name="edges"></param>
   /// <returns></returns>
-  public KeyMap<KeySet> CalculatePowerMap(
+  public KeySetMap CalculatePowerMap(
     KeySetMap edges)
   {
     var pm = new KeyMap<KeySet>();
@@ -123,7 +121,7 @@ public class GraphAnalyzer
       // calculate missing powermap entries starting from seed
       FillPowerSet(seed, edges, pm, guard);
     }
-    return pm;
+    return new KeySetMap(pm);
   }
 
   /// <summary>
