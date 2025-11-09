@@ -17,8 +17,8 @@ namespace TteLcl.Graphs.Analysis;
 public class GraphAnalyzer
 {
   private readonly KeySet _nodes;
-  private readonly KeyMap<KeySet> _sourceEdges;
-  private readonly KeyMap<KeySet> _targetEdges;
+  private readonly KeySetMap _sourceEdges;
+  private readonly KeySetMap _targetEdges;
   private KeySetMapView? _reachMap = null;
   private KeySetMapView? _domainMap = null;
 
@@ -29,8 +29,8 @@ public class GraphAnalyzer
     Graph g)
   {
     _nodes = new KeySet(g.Nodes.Keys);
-    _sourceEdges = new KeyMap<KeySet>();
-    _targetEdges = new KeyMap<KeySet>();
+    _sourceEdges = new KeySetMap();
+    _targetEdges = new KeySetMap();
     SourceEdges = new KeySetMapView(_sourceEdges);
     TargetEdges = new KeySetMapView(_targetEdges);
     foreach(var node in g.Nodes.Values)
@@ -114,7 +114,7 @@ public class GraphAnalyzer
   public KeySetMapView CalculatePowerMap(
     KeySetMapView edges)
   {
-    var pm = new KeyMap<KeySet>();
+    var pm = new KeySetMap();
     var guard = new KeySet();
     foreach(var seed in _nodes)
     {
