@@ -17,7 +17,7 @@ namespace TteLcl.Reflections;
 /// <summary>
 /// Caches information about a potential assembly file
 /// </summary>
-public class AssemblyFileInfo
+public sealed class AssemblyFileInfo: IEquatable<AssemblyFileInfo>
 {
   private AssemblyName? _assemblyName;
   private bool _checked;
@@ -79,4 +79,44 @@ public class AssemblyFileInfo
     }
   }
 
+  /// <summary>
+  /// Check if this and <paramref name="other"/> are equivalent. Two 
+  /// <see cref="AssemblyFileInfo"/> objects are equivalent if their
+  /// <see cref="FileName"/> properties are case insensitively equal.
+  /// </summary>
+  /// <param name="other"></param>
+  /// <returns></returns>
+  public bool Equals(AssemblyFileInfo? other)
+  {
+    if(other == null)
+    {
+      return false;
+    }
+    return StringComparer.OrdinalIgnoreCase.Equals(FileName, other.FileName);
+  }
+
+  /// <summary>
+  /// Check if <paramref name="obj"/> is a <see cref="AssemblyFileInfo"/> and equivalent to this.
+  /// Two <see cref="AssemblyFileInfo"/> objects are equivalent if their
+  /// <see cref="FileName"/> properties are case insensitively equal.
+  /// </summary>
+  /// <param name="obj"></param>
+  /// <returns></returns>
+  public override bool Equals(object? obj)
+  {
+    if(obj is AssemblyFileInfo afi)
+    {
+      return StringComparer.OrdinalIgnoreCase.Equals(FileName, afi.FileName);
+    }
+    return false;
+  }
+
+  /// <summary>
+  /// Get the hash code for this object, consistent with the equality definition
+  /// </summary>
+  /// <returns></returns>
+  public override int GetHashCode()
+  {
+    return StringComparer.Ordinal.GetHashCode(FileName);
+  }
 }
