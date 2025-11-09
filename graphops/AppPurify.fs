@@ -26,15 +26,21 @@ let private runPurify o =
   let sinks = String.Join(", ", analyzer.Sinks)
   cp $"Sink nodes: {sinks}"
   let reachMap = analyzer.GetReachMap()
-  let dbgName = "dbg.dump.json"
-  do
-    use w = dbgName |> startFile
-    let json = JsonConvert.SerializeObject(reachMap, Formatting.Indented)
-    w.WriteLine(json)
-    ()
-  dbgName |> finishFile
-  cp "\frNYI\f0."
-  1
+  let purified = reachMap.NotInSelfProjection(analyzer.TargetEdges)
+  let purified = new KeySetMapView(purified)
+  
+  //let pureName = "purified.dump.json"
+  //do
+  //  use w = pureName |> startFile
+  //  let json = JsonConvert.SerializeObject(purified, Formatting.Indented)
+  //  w.WriteLine(json)
+  //  ()
+  //pureName |> finishFile
+  graph.DisconnectTargetsExcept(purified, true);
+  cp $"Saving \fg{o.OutputFile}\f0."
+  graph.Serialize(o.OutputFile + ".tmp")
+  o.OutputFile |> finishFile
+  0
 
 let run args =
   let rec parseMore o args =

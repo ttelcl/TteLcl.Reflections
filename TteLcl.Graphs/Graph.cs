@@ -75,7 +75,7 @@ public class Graph: IHasMetadata
   /// in the remaining nodes
   /// </summary>
   /// <param name="nodeKeys"></param>
-  public void RemoveNodes(IReadOnlySet<string> nodeKeys)
+  public void RemoveNodes(IEnumerable<string> nodeKeys)
   {
     foreach(var key in nodeKeys)
     {
@@ -88,13 +88,36 @@ public class Graph: IHasMetadata
   }
 
   /// <summary>
-  /// Remove nodes in the given key set, as well as any edges to or from those nodes
-  /// in the remaining nodes
+  /// For each source node key in <paramref name="targetEdgeMap"/> disconnect
+  /// all edges from that source except the ones to those targets.
+  /// If the source node is missing in <paramref name="targetEdgeMap"/> the behaviour
+  /// depends on <paramref name="disconnectMissing"/>.
   /// </summary>
-  /// <param name="nodeKeys"></param>
-  public void RemoveNodes(IEnumerable<string> nodeKeys)
+  /// <param name="targetEdgeMap">
+  /// The mapping of source nodes to sets of target nodes for edges to keep.
+  /// </param>
+  /// <param name="disconnectMissing">
+  /// If a source node is missing in <paramref name="targetEdgeMap"/>: If this
+  /// is true then disconnect all targets. If false then leave the node untouched.
+  /// </param>
+  public void DisconnectTargetsExcept(
+    IReadOnlyDictionary<string, IReadOnlySet<string>> targetEdgeMap,
+    bool disconnectMissing)
   {
-    RemoveNodes(nodeKeys.ToHashSet(StringComparer.OrdinalIgnoreCase));
+    foreach(var node in _nodes.Values)
+    {
+      if(targetEdgeMap.TryGetValue(node.Key, out var targetsToKeep))
+      {
+        node.DisconnectAllExcept(targetsToKeep);
+      }
+      else
+      {
+        if(disconnectMissing)
+        {
+          node.DisconnectAllExcept([]); // disconnect all
+        }
+      }
+    }
   }
 
   /// <summary>

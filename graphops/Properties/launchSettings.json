@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "graphops": {
+      "commandName": "Project",
+      "commandLineArgs": "purify -i TestCase.graph.json -o TestCase.pure.graph.json"
+    }
+  }
+}

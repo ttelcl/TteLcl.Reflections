@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 
 using Newtonsoft.Json.Linq;
 
+using TteLcl.Graphs.Analysis;
+
 namespace TteLcl.Graphs;
 
 /// <summary>
@@ -90,15 +92,54 @@ public class GraphNode: IHasMetadata, IHasKey
 
   /// <summary>
   /// Remove any incoming and outgoing edges to or from nodes in the given
-  /// set of node keys
+  /// set of node keys (to match nodes being removed). This does NOT disconnect
+  /// the other side, since it is assumed the other side is no longer part
+  /// of the graph at all.
   /// </summary>
   /// <param name="remoteNodeKeys"></param>
-  public void RemoveEdges(IReadOnlySet<string> remoteNodeKeys)
+  public void RemoveEdges(IEnumerable<string> remoteNodeKeys)
   {
     foreach(var remoteNodeKey in remoteNodeKeys)
     {
       _targets.Remove(remoteNodeKey);
       _sources.Remove(remoteNodeKey);
+    }
+  }
+
+  /// <summary>
+  /// Removes the edge to the target node on both this side and the
+  /// other side. Use this to remove edges when the nodes stay in the
+  /// graph.
+  /// </summary>
+  /// <param name="targetKey">
+  /// The key of the target node to disconnect
+  /// </param>
+  /// <returns>
+  /// The <see cref="GraphEdge"/> that was removed, or null if not found
+  /// </returns>
+  public GraphEdge? DisconnectTarget(string targetKey)
+  {
+    if(_targets.TryGetValue(targetKey, out var edge))
+    {
+      _targets.Remove(targetKey);
+      edge.Target._sources.Remove(Key);
+      return edge;
+    }
+    return null;
+  }
+
+  /// <summary>
+  /// Disconnect all targets except the ones with keys in <paramref name="targetsToKeep"/>.
+  /// Both ends of the target edge are disconnected
+  /// </summary>
+  /// <param name="targetsToKeep"></param>
+  public void DisconnectAllExcept(IEnumerable<string> targetsToKeep)
+  {
+    var targetsToRemove = new KeySet(_targets.Keys);
+    targetsToRemove.ExceptWith(targetsToKeep);
+    foreach(var targetKey in targetsToRemove)
+    {
+      DisconnectTarget(targetKey);
     }
   }
 
