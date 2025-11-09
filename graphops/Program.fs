@@ -20,8 +20,7 @@ let rec run arglist =
   | "tags" :: rest ->
     rest |> AppTags.run
   | "purify" :: rest ->
-    cp "\fypurify \fo Not yet implemented\f0."
-    1
+    rest |> AppPurify.run
   | "filter" :: rest ->
     rest |> AppFilter.run
   | x :: _ ->

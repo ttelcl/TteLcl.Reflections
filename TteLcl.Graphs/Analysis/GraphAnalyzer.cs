@@ -151,8 +151,9 @@ public class GraphAnalyzer
     {
       if(circularGuard.Contains(seed))
       {
+        var guardSet = String.Join(", ", circularGuard);
         throw new InvalidOperationException(
-          $"Found a circular dependency while processing '{seed}'");
+          $"Found a circular dependency while processing '{seed}'. Guard set = {guardSet}");
       }
       circularGuard.Add(seed);
       powerSet = new KeySet();

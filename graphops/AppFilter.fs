@@ -1,4 +1,5 @@
 ﻿module AppFilter
+
 open System
 open System.IO
 open System.Reflection
