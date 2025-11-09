@@ -91,7 +91,8 @@ let private runCheck o =
       let node = pendingQueue.Peek()
       let name = node.ShortName
       let added = builder.ConnectNext(pendingQueue)
-      cp $"\fk{pendingBefore,3}\f0 -> \fb{pendingQueue.Count,3}\f0  \fc+{added,3}\f0  \fg{name,-60} \fy{node.Tag}\f0."
+      if verbose then
+        cp $"\fk{pendingBefore,3}\f0 -> \fb{pendingQueue.Count,3}\f0  \fc+{added,3}\f0  \fg{name,-60} \fy{node.Tag}\f0."
       ()
     let fileName = $"{o.Dependencies}.asm-graph.json"
     do

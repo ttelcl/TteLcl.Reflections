@@ -10,6 +10,8 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
+using TteLcl.Graphs.Analysis;
+
 namespace TteLcl.Reflections.Graph;
 
 /// <summary>
@@ -144,9 +146,10 @@ public class AssemblyGraphLoader
     // Trace.TraceInformation($"Connecting {dependentName} ... ");
     foreach(var dependencyName in dependencyNames)
     {
-      if(nodeName == dependencyName)
+      if(nodeName == dependencyName || nodeName.Name == dependencyName.Name)
       {
         // Odd thing that may happen for core assemblies like mscorlib, IIRC. Or it did in the early days of .NET
+        // Observed in System.Printing (of all places)
         Trace.TraceInformation(
           $"Bypassing assembly self reference in '{nodeName}'");
         continue;
@@ -166,6 +169,13 @@ public class AssemblyGraphLoader
         pendingNodes.Enqueue(dependencyNode);
       }
       // Initialize without tags
+      var circular = IsKnownCircularDependency(nodeName, dependencyName);
+      if(circular)
+      {
+        Trace.TraceInformation(
+          $"Ignoring known circular dependency {nodeName} -> {dependencyName}");
+        continue;
+      }
       var edge = new AssemblyEdge(dependentName, dependencyNode.FullName, []);
       if(Graph.AddEdge(edge))
       {
@@ -177,5 +187,41 @@ public class AssemblyGraphLoader
       }
     }
     return count;
+  }
+
+  private static KeySetMap KnownCircularDependencies = new KeySetMap {
+    { "System", new KeySet { "System.Configuration", "System.Xml" } },
+    { "System.Xml", new KeySet { "System.Configuration", "System.Data.SqlXml" } },
+    { "System.Deployment", new KeySet { "System.Windows.Forms" } },
+    { "PresentationFramework", new KeySet { "PresentationUI", "ReachFramework", "System.Printing" } },
+    { "ReachFramework", new KeySet { "System.Printing" } },
+    { "System.Printing", new KeySet { "System.Printing" } },   // ??!
+    { "System.Data", new KeySet { "System.EnterpriseServices", "System.Runtime.Caching" } },
+    { "System.Transactions", new KeySet { "System.EnterpriseServices" } },
+    { "System.Web", new KeySet { "System.Design", "System.EnterpriseServices", "System.Web.Services" } },
+    { "System.ServiceModel", new KeySet { "Microsoft.Transactions.Bridge", "System.ServiceModel.Activation" } },
+    { "System.Data.Services.Design", new KeySet { "System.Web.Extensions" } },
+  };
+
+  /// <summary>
+  /// Check if the edge is a known circular dependency and if ignored would
+  /// break that circle.
+  /// </summary>
+  /// <param name="dependent">
+  /// The assembly that depends on <paramref name="dependency"/>
+  /// </param>
+  /// <param name="dependency">
+  /// The assembly that <paramref name="dependent"/> depends on
+  /// </param>
+  /// <returns></returns>
+  public static bool IsKnownCircularDependency(
+    AssemblyName dependent, AssemblyName dependency)
+  {
+    var dependentName = dependent.Name!;
+    var dependencyName = dependency.Name!;
+    return
+      KnownCircularDependencies.TryGetValue(dependentName, out var badDependencies)
+      ? badDependencies.Contains(dependencyName)
+      : false;
   }
 }

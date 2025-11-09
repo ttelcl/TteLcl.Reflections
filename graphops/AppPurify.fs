@@ -22,6 +22,13 @@ let private runPurify o =
   let graph = o.InputFile |> Graph.DeserializeFile
   let analyzer = new GraphAnalyzer(graph)
   let reachMap = analyzer.GetReachMap()
+  let dbgName = "dbg.dump.json"
+  do
+    use w = dbgName |> startFile
+    let json = JsonConvert.SerializeObject(reachMap, Formatting.Indented)
+    w.WriteLine(json)
+    ()
+  dbgName |> finishFile
   cp "\frNYI\f0."
   1
 
