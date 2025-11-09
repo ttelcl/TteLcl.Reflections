@@ -21,6 +21,10 @@ let private runPurify o =
   cp $"Loading \fg{o.InputFile}\f0."
   let graph = o.InputFile |> Graph.DeserializeFile
   let analyzer = new GraphAnalyzer(graph)
+  let seeds = String.Join(", ", analyzer.Seeds)
+  cp $"Seed nodes: {seeds}"
+  let sinks = String.Join(", ", analyzer.Sinks)
+  cp $"Sink nodes: {sinks}"
   let reachMap = analyzer.GetReachMap()
   let dbgName = "dbg.dump.json"
   do

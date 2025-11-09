@@ -189,18 +189,21 @@ public class AssemblyGraphLoader
     return count;
   }
 
-  private static KeySetMap KnownCircularDependencies = new KeySetMap {
-    { "System", new KeySet { "System.Configuration", "System.Xml" } },
-    { "System.Xml", new KeySet { "System.Configuration", "System.Data.SqlXml" } },
-    { "System.Deployment", new KeySet { "System.Windows.Forms" } },
-    { "PresentationFramework", new KeySet { "PresentationUI", "ReachFramework", "System.Printing" } },
-    { "ReachFramework", new KeySet { "System.Printing" } },
-    { "System.Printing", new KeySet { "System.Printing" } },   // ??!
-    { "System.Data", new KeySet { "System.EnterpriseServices", "System.Runtime.Caching" } },
-    { "System.Transactions", new KeySet { "System.EnterpriseServices" } },
-    { "System.Web", new KeySet { "System.Design", "System.EnterpriseServices", "System.Web.Services" } },
-    { "System.ServiceModel", new KeySet { "Microsoft.Transactions.Bridge", "System.ServiceModel.Activation" } },
-    { "System.Data.Services.Design", new KeySet { "System.Web.Extensions" } },
+  private static readonly KeySetMap KnownCircularDependencies = new() {
+    { "System", new() { "System.Configuration", "System.Xml" } },
+    { "System.Xml", new() { "System.Configuration" } },
+    { "System.Data.SqlXml", new() { "System.Xml" } },
+    { "System.Deployment", new() { "System.Windows.Forms" } },
+    { "PresentationFramework", new() { "ReachFramework" } },
+    { "PresentationUI", new() { "PresentationFramework", "ReachFramework", "System.Printing" } },
+    { "ReachFramework", new() { "System.Printing" } },
+    { "System.Printing", new() { /*"System.Printing", self-reference!! */ "PresentationFramework", "ReachFramework" } },
+    { "System.Data", new() { "System.EnterpriseServices", "System.Runtime.Caching" } },
+    { "System.Transactions", new() { "System.EnterpriseServices" } },
+    { "System.Web", new() { "System.Design", "System.EnterpriseServices", "System.Web.Services" } },
+    { "System.ServiceModel", new() { "System.ServiceModel.Activation" } },
+    { "Microsoft.Transactions.Bridge", new() { "System.ServiceModel" } },
+    { "System.Data.Services.Design", new() { "System.Web.Extensions" } },
   };
 
   /// <summary>

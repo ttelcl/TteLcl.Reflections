@@ -17,6 +17,8 @@ namespace TteLcl.Graphs.Analysis;
 public class GraphAnalyzer
 {
   private readonly KeySet _nodes;
+  private readonly KeySet _seeds;
+  private readonly KeySet _sinks;
   private readonly KeySetMap _sourceEdges;
   private readonly KeySetMap _targetEdges;
   private KeySetMapView? _reachMap = null;
@@ -29,6 +31,8 @@ public class GraphAnalyzer
     Graph g)
   {
     _nodes = new KeySet(g.Nodes.Keys);
+    _seeds = new KeySet();
+    _sinks = new KeySet();
     _sourceEdges = new KeySetMap();
     _targetEdges = new KeySetMap();
     SourceEdges = new KeySetMapView(_sourceEdges);
@@ -39,6 +43,14 @@ public class GraphAnalyzer
       var targetSet = new KeySet(node.Targets.Keys);
       _sourceEdges[node.Key] = sourceSet;
       _targetEdges[node.Key] = targetSet;
+      if(sourceSet.Count == 0)
+      {
+        _seeds.Add(node.Key);
+      }
+      if(targetSet.Count == 0)
+      {
+        _sinks.Add(node.Key);
+      }
     }
   }
 
@@ -46,6 +58,16 @@ public class GraphAnalyzer
   /// A read only view on all nodes in this analyzer
   /// </summary>
   public IReadOnlySet<string> Nodes => _nodes;
+
+  /// <summary>
+  /// Keys of the nodes without sources
+  /// </summary>
+  public IReadOnlySet<string> Seeds => _seeds;
+
+  /// <summary>
+  /// Keys of the nodes without targets
+  /// </summary>
+  public IReadOnlySet<string> Sinks => _sinks;
 
   /// <summary>
   /// A read-only view on the incoming ("source") edges of all nodes, mapping each
