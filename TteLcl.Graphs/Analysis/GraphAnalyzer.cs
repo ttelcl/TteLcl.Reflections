@@ -19,8 +19,8 @@ public class GraphAnalyzer
   private readonly KeySet _nodes;
   private readonly KeyMap<KeySet> _sourceEdges;
   private readonly KeyMap<KeySet> _targetEdges;
-  private KeySetMap? _reachMap = null;
-  private KeySetMap? _domainMap = null;
+  private KeySetMapView? _reachMap = null;
+  private KeySetMapView? _domainMap = null;
 
   /// <summary>
   /// Create a new GraphAnalyzer, taking a snapshot of nodes and edges in a graph
@@ -31,8 +31,8 @@ public class GraphAnalyzer
     _nodes = new KeySet(g.Nodes.Keys);
     _sourceEdges = new KeyMap<KeySet>();
     _targetEdges = new KeyMap<KeySet>();
-    SourceEdges = new KeySetMap(_sourceEdges);
-    TargetEdges = new KeySetMap(_targetEdges);
+    SourceEdges = new KeySetMapView(_sourceEdges);
+    TargetEdges = new KeySetMapView(_targetEdges);
     foreach(var node in g.Nodes.Values)
     {
       var sourceSet = new KeySet(node.Sources.Keys);
@@ -51,13 +51,13 @@ public class GraphAnalyzer
   /// A read-only view on the incoming ("source") edges of all nodes, mapping each
   /// node key to the node keys of nodes with an edge leading to the former node.
   /// </summary>
-  public KeySetMap SourceEdges { get; }
+  public KeySetMapView SourceEdges { get; }
 
   /// <summary>
   /// A read-only view on the outgoing ("target") edges of all nodes, mapping each
   /// node key to the node keys of nodes with an edge coming from the former node.
   /// </summary>
-  public KeySetMap TargetEdges { get; }
+  public KeySetMapView TargetEdges { get; }
 
   ///// <summary>
   ///// Returns the node keys of nodes that have an edge to the node with the given
@@ -79,7 +79,7 @@ public class GraphAnalyzer
   /// Get the map that maps each node to its 'reach' (the set of nodes reachable from that node,
   /// excluding the node itself). This is calculated on first call, then cached.
   /// </summary>
-  public KeySetMap GetReachMap()
+  public KeySetMapView GetReachMap()
   {
     if(_reachMap == null)
     {
@@ -92,7 +92,7 @@ public class GraphAnalyzer
   /// Get the map that maps each node to its 'reach' (the set of nodes reachable from that node,
   /// excluding the node itself). This is calculated on first call, then cached.
   /// </summary>
-  public KeySetMap GetDomainMap()
+  public KeySetMapView GetDomainMap()
   {
     if(_domainMap == null)
     {
@@ -111,8 +111,8 @@ public class GraphAnalyzer
   /// </summary>
   /// <param name="edges"></param>
   /// <returns></returns>
-  public KeySetMap CalculatePowerMap(
-    KeySetMap edges)
+  public KeySetMapView CalculatePowerMap(
+    KeySetMapView edges)
   {
     var pm = new KeyMap<KeySet>();
     var guard = new KeySet();
@@ -121,7 +121,7 @@ public class GraphAnalyzer
       // calculate missing powermap entries starting from seed
       FillPowerSet(seed, edges, pm, guard);
     }
-    return new KeySetMap(pm);
+    return new KeySetMapView(pm);
   }
 
   /// <summary>
@@ -143,7 +143,7 @@ public class GraphAnalyzer
   /// <returns></returns>
   private KeySet FillPowerSet(
     string seed,
-    KeySetMap edges,
+    KeySetMapView edges,
     KeyMap<KeySet> powerMap,
     KeySet circularGuard)
   {

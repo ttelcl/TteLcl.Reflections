@@ -16,12 +16,12 @@ namespace TteLcl.Graphs.Analysis;
 /// (but also exposes that underlying object as <see cref="Host"/>.
 /// Many operations in <see cref="GraphAnalyzer"/> operate on this type.
 /// </summary>
-public class KeySetMap: MapView<string, KeySet, string>, IReadOnlyDictionary<string, IReadOnlySet<string>>
+public class KeySetMapView: MapView<string, KeySet, string>, IReadOnlyDictionary<string, IReadOnlySet<string>>
 {
   /// <summary>
   /// Create a new KeySetMap
   /// </summary>
-  public KeySetMap(KeyMap<KeySet> host)
+  public KeySetMapView(KeyMap<KeySet> host)
     : base(host)
   {
     Host = host;
