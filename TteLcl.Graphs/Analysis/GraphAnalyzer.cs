@@ -19,8 +19,6 @@ public class GraphAnalyzer
   private readonly KeySet _nodes;
   private readonly KeySet _seeds;
   private readonly KeySet _sinks;
-  private readonly KeySetMap _sourceEdges;
-  private readonly KeySetMap _targetEdges;
   private KeySetMapView? _reachMap = null;
   private KeySetMapView? _domainMap = null;
 
@@ -33,16 +31,16 @@ public class GraphAnalyzer
     _nodes = new KeySet(g.Nodes.Keys);
     _seeds = new KeySet();
     _sinks = new KeySet();
-    _sourceEdges = new KeySetMap();
-    _targetEdges = new KeySetMap();
-    SourceEdges = new KeySetMapView(_sourceEdges);
-    TargetEdges = new KeySetMapView(_targetEdges);
+    var sourceEdges = new KeySetMap();
+    var targetEdges = new KeySetMap();
+    SourceEdges = new KeySetMapView(sourceEdges);
+    TargetEdges = new KeySetMapView(targetEdges);
     foreach(var node in g.Nodes.Values)
     {
       var sourceSet = new KeySet(node.Sources.Keys);
       var targetSet = new KeySet(node.Targets.Keys);
-      _sourceEdges[node.Key] = sourceSet;
-      _targetEdges[node.Key] = targetSet;
+      sourceEdges[node.Key] = sourceSet;
+      targetEdges[node.Key] = targetSet;
       if(sourceSet.Count == 0)
       {
         _seeds.Add(node.Key);
@@ -81,21 +79,25 @@ public class GraphAnalyzer
   /// </summary>
   public KeySetMapView TargetEdges { get; }
 
-  ///// <summary>
-  ///// Returns the node keys of nodes that have an edge to the node with the given
-  ///// <paramref name="targetKey"/> as key.
-  ///// </summary>
-  ///// <param name="targetKey"></param>
-  ///// <returns></returns>
-  //public IReadOnlyCollection<string> SourceKeys(string targetKey) => SourceEdges[targetKey];
+  /// <summary>
+  /// The total number of nodes in this graph
+  /// </summary>
+  public int NodeCount => _nodes.Count;
 
-  ///// <summary>
-  ///// Returns the node keys of nodes that have an edge from the node with the given
-  ///// <paramref name="sourceKey"/> as key.
-  ///// </summary>
-  ///// <param name="sourceKey"></param>
-  ///// <returns></returns>
-  //public IReadOnlyCollection<string> TargetKeys(string sourceKey) => TargetEdges[sourceKey];
+  /// <summary>
+  /// The total number of edges in this graph
+  /// </summary>
+  public int EdgeCount => TargetEdges.Values.Sum(e => e.Count);
+
+  /// <summary>
+  /// The number of seed nodes in this graph (nodes without incoming edges)
+  /// </summary>
+  public int SeedCount => _seeds.Count;
+
+  /// <summary>
+  /// The number of sink nodes in this graph (nodes without outgoing edges)
+  /// </summary>
+  public int SinkCount => _sinks.Count;
 
   /// <summary>
   /// Get the map that maps each node to its 'reach' (the set of nodes reachable from that node,

@@ -135,8 +135,7 @@ public class GraphNode: IHasMetadata, IHasKey
   /// <param name="targetsToKeep"></param>
   public void DisconnectAllExcept(IEnumerable<string> targetsToKeep)
   {
-    var targetsToRemove = new KeySet(_targets.Keys);
-    targetsToRemove.ExceptWith(targetsToKeep);
+    var targetsToRemove = KeySet.CreateDifference(_targets.Keys, targetsToKeep);
     foreach(var targetKey in targetsToRemove)
     {
       DisconnectTarget(targetKey);

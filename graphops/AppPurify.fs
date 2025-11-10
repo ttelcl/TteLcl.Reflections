@@ -20,24 +20,18 @@ type private Options = {
 let private runPurify o =
   cp $"Loading \fg{o.InputFile}\f0."
   let graph = o.InputFile |> Graph.DeserializeFile
+  cp $"  (\fb{graph.NodeCount}\f0 nodes, \fc{graph.EdgeCount}\f0 edges, \fy{graph.SeedCount}\f0 seeds, \fo{graph.SinkCount}\f0 sinks)"
   let analyzer = new GraphAnalyzer(graph)
   let seeds = String.Join(", ", analyzer.Seeds)
-  cp $"Seed nodes: {seeds}"
+  cp $"  Seed nodes: {seeds}"
   let sinks = String.Join(", ", analyzer.Sinks)
-  cp $"Sink nodes: {sinks}"
+  cp $"  Sink nodes: {sinks}"
   let reachMap = analyzer.GetReachMap()
   let purified = reachMap.NotInSelfProjection(analyzer.TargetEdges)
   let purified = new KeySetMapView(purified)
-  
-  //let pureName = "purified.dump.json"
-  //do
-  //  use w = pureName |> startFile
-  //  let json = JsonConvert.SerializeObject(purified, Formatting.Indented)
-  //  w.WriteLine(json)
-  //  ()
-  //pureName |> finishFile
   graph.DisconnectTargetsExcept(purified, true);
   cp $"Saving \fg{o.OutputFile}\f0."
+  cp $"  (\fb{graph.NodeCount}\f0 nodes, \fc{graph.EdgeCount}\f0 edges, \fy{graph.SeedCount}\f0 seeds, \fo{graph.SinkCount}\f0 sinks)"
   graph.Serialize(o.OutputFile + ".tmp")
   o.OutputFile |> finishFile
   0

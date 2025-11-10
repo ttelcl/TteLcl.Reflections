@@ -8,6 +8,8 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
+using TteLcl.Graphs.Analysis;
+
 namespace TteLcl.Graphs;
 
 /// <summary>
@@ -42,6 +44,36 @@ public class Graph: IHasMetadata
   /// The collection of nodes in this graph
   /// </summary>
   public IReadOnlyDictionary<string, GraphNode> Nodes => _nodes;
+
+  /// <summary>
+  /// The number of nodes in this graph
+  /// </summary>
+  public int NodeCount => _nodes.Count;
+
+  /// <summary>
+  /// The number of edges in this graph
+  /// </summary>
+  public int EdgeCount => _nodes.Values.Sum(n => n.Targets.Count);
+
+  /// <summary>
+  /// Enumerate the seed nodes (calculated on the fly)
+  /// </summary>
+  public IEnumerable<GraphNode> SeedNodes => Nodes.Values.Where(n => n.Sources.Count == 0);
+
+  /// <summary>
+  /// Enumerate the sink nodes (calculated on the fly)
+  /// </summary>
+  public IEnumerable<GraphNode> SinkNodes => Nodes.Values.Where(n => n.Targets.Count == 0);
+
+  /// <summary>
+  /// The number of seed nodes (calculated on the fly)
+  /// </summary>
+  public int SeedCount => Nodes.Values.Count(n => n.Sources.Count == 0);
+
+  /// <summary>
+  /// The number of sink nodes (calculated on the fly)
+  /// </summary>
+  public int SinkCount => Nodes.Values.Count(n => n.Targets.Count == 0);
 
   /// <summary>
   /// Add a new node
@@ -85,6 +117,17 @@ public class Graph: IHasMetadata
     {
       node.RemoveEdges(nodeKeys);
     }
+  }
+
+  /// <summary>
+  /// Remove all nodes except the ones in the given key set (as well as any edges to
+  /// or from the removed nodes)
+  /// </summary>
+  /// <param name="nodeKeysToKeep"></param>
+  public void RemoveOtherNodes(IEnumerable<string> nodeKeysToKeep)
+  {
+    var keysToRemove = KeySet.CreateDifference(_nodes.Keys, nodeKeysToKeep);
+    RemoveNodes(keysToRemove);
   }
 
   /// <summary>
