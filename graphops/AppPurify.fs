@@ -22,10 +22,10 @@ let private runPurify o =
   let graph = o.InputFile |> Graph.DeserializeFile
   cp $"  (\fb{graph.NodeCount}\f0 nodes, \fc{graph.EdgeCount}\f0 edges, \fy{graph.SeedCount}\f0 seeds, \fo{graph.SinkCount}\f0 sinks)"
   let analyzer = new GraphAnalyzer(graph)
-  let seeds = String.Join(", ", analyzer.Seeds)
-  cp $"  Seed nodes: {seeds}"
-  let sinks = String.Join(", ", analyzer.Sinks)
-  cp $"  Sink nodes: {sinks}"
+  let seeds = String.Join("\f0,\fy ", analyzer.Seeds)
+  cp $"  Seed nodes: \fy{seeds}\f0."
+  let sinks = String.Join("\f0,\fo ", analyzer.Sinks)
+  cp $"  Sink nodes: \fo{sinks}\f0."
   let reachMap = analyzer.GetReachMap()
   let purified = reachMap.NotInSelfProjection(analyzer.TargetEdges)
   let purified = new KeySetMapView(purified)

@@ -26,29 +26,29 @@ public class AssemblyNode: IGraphNode
   /// <param name="file">
   /// The full path to the file, if known
   /// </param>
-  /// <param name="tag">
+  /// <param name="module">
   /// The primary tag associated with this node. This tag, if not null, should also
   /// be in <paramref name="tags"/> (and will be added automatically if it isn't).
   /// </param>
   /// <param name="tags">
-  /// All tags associated with this node. If not already present, <paramref name="tag"/> will
+  /// All tags associated with this node. If not already present, <paramref name="module"/> will
   /// be added automatically
   /// </param>
   [JsonConstructor]
   public AssemblyNode(
     string key,
     string? file = null,
-    string? tag = null,
+    string? module = null,
     IEnumerable<string>? tags = null)
   {
     Key = key;
     AssemblyName = new AssemblyName(key);
     tags ??= [];
     Tags = new HashSet<string>(tags, StringComparer.OrdinalIgnoreCase);
-    Tag = tag;
-    if(tag != null && !Tags.Contains(tag))
+    Module = module;
+    if(module != null && !Tags.Contains(module))
     {
-      Tags.Add(tag);
+      Tags.Add(module);
     }
     FileName = file;
   }
@@ -78,8 +78,8 @@ public class AssemblyNode: IGraphNode
   /// The primary tag for this assembly, if defined. If not null, this
   /// should also be in <see cref="Tags"/>.
   /// </summary>
-  [JsonProperty("tag")]
-  public string? Tag { get; }
+  [JsonProperty("module")]
+  public string? Module { get; }
 
   /// <summary>
   /// The collection of tag strings associated with this node (mutable)

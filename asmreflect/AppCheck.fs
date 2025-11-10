@@ -92,7 +92,7 @@ let private runCheck o =
       let node = pendingQueue.Peek()
       let name = node.ShortName
       let added = builder.ConnectNext(pendingQueue)
-      let message = $"\fk{pendingBefore,3}\f0 -> \fb{pendingQueue.Count,3}\f0  \fc+{added,3}\f0  \fg{name,-60} \fy{node.Tag}\f0."
+      let message = $"\fk{pendingBefore,3}\f0 -> \fb{pendingQueue.Count,3}\f0  \fc+{added,3}\f0  \fg{name,-60} \fy{node.Module}\f0."
       if verbose then
         cp message
       else
