@@ -23,6 +23,8 @@ let rec run arglist =
     rest |> AppPurify.run
   | "filter" :: rest ->
     rest |> AppFilter.run
+  | "dot" :: rest ->
+    rest |> AppDot.run
   | x :: _ ->
     cp $"\frUnrecognized command: \fo{x}\f0."
     cp ""

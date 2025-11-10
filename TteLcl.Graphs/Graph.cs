@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -23,18 +24,83 @@ public class Graph: IHasMetadata
   /// <summary>
   /// Create a new empty graph
   /// </summary>
-  /// <param name="metdata">
+  /// <param name="metadata">
   /// If provided: the metadata to copy into this new graph object
   /// </param>
   public Graph(
-    Metadata? metdata = null)
+    Metadata? metadata = null)
   {
     _nodes = new Dictionary<string, GraphNode>(StringComparer.OrdinalIgnoreCase);
     Metadata = new Metadata();
-    if(metdata != null)
+    if(metadata != null)
     {
-      Metadata.Import(metdata);
+      Metadata.Import(metadata);
     }
+  }
+
+  /// <summary>
+  /// Try to derive a new file name from a given *.graph.json file
+  /// </summary>
+  /// <param name="graphJsonFile">
+  /// The template *.graph.json file
+  /// </param>
+  /// <param name="newExtension">
+  /// The new file extension (or multi-extension) to replace ".graph.json"
+  /// </param>
+  /// <param name="newName">
+  /// The resulting new file name
+  /// </param>
+  /// <returns>
+  /// True if successful, false if <paramref name="graphJsonFile"/> did not end with ".graph.json"
+  /// </returns>
+  /// <exception cref="ArgumentException">
+  /// Thrown if <paramref name="newExtension"/> does not begin with "."
+  /// </exception>
+  public static bool TryDeriveName(string graphJsonFile, string newExtension, [NotNullWhen(true)] out string? newName)
+  {
+    var expectedExtension = ".graph.json";
+    if(!newExtension.StartsWith('.'))
+    {
+      throw new ArgumentException(
+        "Expecting new extension to start with a '.'", nameof(newExtension));
+    }
+    if(!graphJsonFile.EndsWith(expectedExtension, StringComparison.OrdinalIgnoreCase))
+    {
+      newName = null;
+      return false;
+    }
+    var prefix = graphJsonFile[..^expectedExtension.Length];
+    newName = prefix + newExtension;
+    return true;
+  }
+
+  /// <summary>
+  /// Derive an output file name from the name of a *.graph.json file for the case where an
+  /// output name was missing
+  /// </summary>
+  /// <param name="graphJsonFile">
+  /// The template *.graph.json file
+  /// </param>
+  /// <param name="newExtension">
+  /// The new file extension (or multi-extension) to replace ".graph.json"
+  /// </param>
+  /// <param name="predefinedName">
+  /// The output name override. If not null (the user specified an explicit output name), this
+  /// is the string that is returned (and <paramref name="graphJsonFile"/> and <paramref name="newExtension"/>
+  /// are ignored)
+  /// </param>
+  /// <returns>
+  /// <paramref name="predefinedName"/> if it is not null, or <paramref name="graphJsonFile"/> with
+  /// ".graph.json" replaced by <paramref name="newExtension"/>, or null if <paramref name="graphJsonFile"/>
+  /// did not end with ".graph.json".
+  /// </returns>
+  public static string? DeriveMissingName(string graphJsonFile, string newExtension, string? predefinedName = null)
+  {
+    if(!String.IsNullOrEmpty(predefinedName))
+    {
+      return predefinedName;
+    }
+    return TryDeriveName(graphJsonFile, newExtension, out var newName) ? newName : null;
   }
 
   /// <inheritdoc/>
@@ -200,7 +266,7 @@ public class Graph: IHasMetadata
   /// Serialize the information in this graph into JSON form
   /// </summary>
   /// <returns></returns>
-  public JObject Serialize() 
+  public JObject Serialize()
   {
     var g = new JObject();
     var nodes = new JObject();

@@ -20,7 +20,7 @@ namespace TteLcl.Graphs.Dot;
 public class DotFileWriter: IDisposable
 {
   private TextWriter? _writer;
-  private HashSet<string> _knownNodes;
+  private readonly HashSet<string> _knownNodes;
 
   /// <summary>
   /// Create a new DotFileWriter
@@ -129,7 +129,10 @@ public class DotFileWriter: IDisposable
     Writer.WriteLine("  ];");
   }
 
-  private TextWriter Writer {
+  /// <summary>
+  /// The underlying text writer.
+  /// </summary>
+  public TextWriter Writer {
     get {
       return
         _writer == null
