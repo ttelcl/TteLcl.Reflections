@@ -142,6 +142,26 @@ public class Graph: IHasMetadata
   public int SinkCount => Nodes.Values.Count(n => n.Targets.Count == 0);
 
   /// <summary>
+  /// Classify all nodes using <paramref name="classifier"/>, and group them based on the classification
+  /// </summary>
+  public Dictionary<K, List<GraphNode>> ClassifyNodes<K>(Func<GraphNode, K> classifier, IEqualityComparer<K>? comparer = null)
+    where K: notnull
+  {
+    var result = new Dictionary<K, List<GraphNode>>(comparer);
+    foreach(var node in Nodes.Values)
+    {
+      var classification = classifier(node);
+      if(!result.TryGetValue(classification, out var list))
+      {
+        list = new List<GraphNode>();
+        result[classification] = list;
+      }
+      list.Add(node);
+    }
+    return result;
+  }
+
+  /// <summary>
   /// Add a new node
   /// </summary>
   /// <param name="key">

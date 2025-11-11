@@ -21,22 +21,37 @@ type private Options = {
 let private runDot o =
   cp $"Loading \fg{o.InputFile}\f0."
   let graph = o.InputFile |> Graph.DeserializeFile
+  let seedKeys = graph.SeedNodes |> Seq.map (fun n -> n.Key) |> Set.ofSeq
+  let sinkKeys = graph.SinkNodes |> Seq.map (fun n -> n.Key) |> Set.ofSeq
   cp $"  (\fb{graph.NodeCount}\f0 nodes, \fc{graph.EdgeCount}\f0 edges, \fy{graph.SeedCount}\f0 seeds, \fo{graph.SinkCount}\f0 sinks)"
   do
     cp $"Writing \fg{o.OutputFile}\f0."
-    use dw = new DotFileWriter(o.OutputFile + ".tmp", true, horizontal = true)
-    for node in graph.Nodes.Values do
-      let properties = node.GetProperties()
-      dw.AddNode(node.Key, [ properties["module"] ], "box")
+    use dw = new DotFileWriter(o.OutputFile + ".tmp", true, horizontal = false)
+    // dw.WriteProperty("TBbalance", "min")
+    let classification = graph.ClassifyNodes((fun n -> n.Kind.ToString()))
+    for kvp in classification do
+      let cls = kvp.Key
+      use _ = dw.StartSubGraph("cluster_" + cls, null)
+      for node in kvp.Value do
+        let properties = node.GetProperties()
+        use _ = dw.StartNode(node.Key, [ properties["module"] ], "box")
+        if node.Key |> seedKeys.Contains then
+          dw.WriteProperty("color", "#ccdd55")
+        elif node.Key |> sinkKeys.Contains then
+          dw.WriteProperty("color", "#cc55dd")
+        ()
     for node in graph.Nodes.Values do
       for edge in node.Targets.Values do
         let src = edge.Source.Key
         let tgt = edge.Target.Key
-        dw.AddEdge(src, tgt)
+        use _ = dw.StartEdge(src, tgt)
+        ()
     ()
   o.OutputFile |> finishFile
-  cp $"   Reminder: use \fydot -Tsvg -O {o.OutputFile}\f0 to generate SVG from this file"
-  cp "\frNYI\f0!"
+  cp $"   Reminder on dot commands:"
+  cp $"      \fGdot -Txdot -O {o.OutputFile}\f0 to generate laid out dot (xdot)"
+  cp $"      \fGdot -Txdot_json -O {o.OutputFile}.xdot\f0 to convert that to json"
+
   0
 
 let run args =
