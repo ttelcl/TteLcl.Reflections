@@ -162,6 +162,29 @@ public class Graph: IHasMetadata
   }
 
   /// <summary>
+  /// Classify all nodes using their value for the given <paramref name="propertyName"/>, and group them
+  /// based on the classification. Nodes where the property is missing or empty are skipped
+  /// </summary>
+  public Dictionary<string, List<GraphNode>> ClassifyNodes(string propertyName, IEqualityComparer<string>? comparer = null)
+  {
+    var result = new Dictionary<string, List<GraphNode>>(comparer);
+    foreach(var node in Nodes.Values)
+    {
+      if(node.Metadata.Properties.TryGetValue(propertyName, out var classification) 
+        && !String.IsNullOrEmpty(classification))
+      {
+        if(!result.TryGetValue(classification, out var list))
+        {
+          list = new List<GraphNode>();
+          result[classification] = list;
+        }
+        list.Add(node);
+      }
+    }
+    return result;
+  }
+
+  /// <summary>
   /// Add a new node
   /// </summary>
   /// <param name="key">

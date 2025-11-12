@@ -20,6 +20,7 @@
     <Compile Include="AppFilter.fs" />
     <Compile Include="AppPurify.fs" />
     <Compile Include="AppDot.fs" />
+    <Compile Include="AppSuper.fs" />
     <Compile Include="Program.fs" />
     <None Include="README.md" />
   </ItemGroup>

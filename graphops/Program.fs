@@ -25,6 +25,9 @@ let rec run arglist =
     rest |> AppFilter.run
   | "dot" :: rest ->
     rest |> AppDot.run
+  | "supergraph" :: rest 
+  | "super" :: rest ->
+    rest |> AppSuper.run
   | x :: _ ->
     cp $"\frUnrecognized command: \fo{x}\f0."
     cp ""
