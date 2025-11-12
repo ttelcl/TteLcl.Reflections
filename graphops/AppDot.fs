@@ -8,10 +8,10 @@ open Newtonsoft.Json
 
 open TteLcl.Graphs
 open TteLcl.Graphs.Analysis
+open TteLcl.Graphs.Dot
 
 open ColorPrint
 open CommonTools
-open TteLcl.Graphs.Dot
 
 type private Options = {
   InputFile: string
