@@ -34,7 +34,9 @@ let private runDot o =
       use _ = dw.StartSubGraph("cluster_" + cls, null)
       for node in kvp.Value do
         let properties = node.GetProperties()
-        use _ = dw.StartNode(node.Key, [ properties["module"] ], "box")
+        let ok, moduleName = properties.TryGetValue("module")
+        let sublabels = if ok then [ moduleName ] else []
+        use _ = dw.StartNode(node.Key, sublabels, "box")
         if node.Key |> seedKeys.Contains then
           dw.WriteProperty("color", "#ccdd55")
         elif node.Key |> sinkKeys.Contains then

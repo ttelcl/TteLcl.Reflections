@@ -41,8 +41,14 @@ let private runSuper o =
     cp "Found the following groups:"
     for kvp in groupMap |> Seq.sortBy (fun kvp -> kvp.Key) do
       cp $"\fb{kvp.Value.Count,4}\f0 '{kvp.Key}\f0'"
-    cp "\frNYI\f0!"
-    1
+    let classifier = NodeMapClassifier.FromNodeClassificationMap(groupMap)
+    let superGraph = graph.SuperGraph(classifier)
+    do
+      cp $"Saving \fg{o.OutputFile}\f0."
+      cp $"  (\fb{superGraph.NodeCount}\f0 nodes, \fc{superGraph.EdgeCount}\f0 edges, \fy{superGraph.SeedCount}\f0 seeds, \fo{superGraph.SinkCount}\f0 sinks)"
+      o.OutputFile + ".tmp" |> superGraph.Serialize
+    o.OutputFile |> finishFile
+    0
 
 let run args =
   let getDefaultExtension o =

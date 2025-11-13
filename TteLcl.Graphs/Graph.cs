@@ -185,6 +185,66 @@ public class Graph: IHasMetadata
   }
 
   /// <summary>
+  /// Create a snapshot of source-node-id to target-node-id mappings for all edges
+  /// </summary>
+  /// <returns></returns>
+  public KeySetMapView EdgesSnapShot()
+  {
+    var ksm = new KeySetMap();
+    foreach(var node in Nodes.Values)
+    {
+      var targets = new KeySet(node.Targets.Keys);
+      ksm.Add(node.Key, targets);
+    }
+    return new KeySetMapView(ksm);
+  }
+  
+  /// <summary>
+  /// Construct the supergraph of this graph based on the given <paramref name="classifier"/>.
+  /// </summary>
+  /// <param name="classifier"></param>
+  /// <returns></returns>
+  public Graph SuperGraph(INodeClassifier classifier)
+  {
+    var result = new Graph(Metadata);
+    var targetEdges = EdgesSnapShot();
+    // classificationMap maps classifications to their nodes
+    var classificationMap = classifier.ClassifyAll(Nodes.Keys);
+    // first create nodes, before adding any edges
+    foreach(var kvp in classificationMap)
+    {
+      var classification = kvp.Key;
+      var superNode = result.AddNode(classification);
+      // add tags to link back to the original nodes
+      foreach(var nodeKey in kvp.Value)
+      {
+        superNode.Metadata.AddTag("node", nodeKey);
+      }
+    }
+    // Then add edges
+    foreach(var kvp in classificationMap)
+    {
+      var classification = kvp.Key;
+      var superNode = result.Nodes[classification];
+      foreach(var sourceKey in kvp.Value)
+      {
+        var edges = targetEdges[sourceKey];
+        foreach(var targetKey in edges)
+        {
+          if(classifier.TryClassifyNode(targetKey, out var targetClassification) // skip unclassified targets
+            && !superNode.Targets.ContainsKey(targetClassification) // skip duplicates
+            && targetClassification != classification) // skip self-edges
+          {
+            var targetNode = result.Nodes[targetClassification];
+            superNode.Connect(targetNode);
+          }
+        }
+      }
+    }
+    return result;
+  }
+
+  /// <summary>
   /// Add a new node
   /// </summary>
   /// <param name="key">
