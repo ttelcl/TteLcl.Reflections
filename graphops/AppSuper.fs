@@ -19,6 +19,7 @@ type private Options = {
   InputFile: string
   OutputFile: string
   Key: SuperKey
+  PrefixSpec: (string * int) option
 }
 
 let private runSuper o =
@@ -43,6 +44,17 @@ let private runSuper o =
       cp $"\fb{kvp.Value.Count,4}\f0 '{kvp.Key}\f0'"
     let classifier = NodeMapClassifier.FromNodeClassificationMap(groupMap)
     let superGraph = graph.SuperGraph(classifier)
+    match o.PrefixSpec with
+    | Some(separator, maxcount) ->
+      for node in superGraph.Nodes.Values do
+        let ok, tags = node.Metadata.TryGetTags("node")
+        if ok then
+          let commonPrefix = Metadata.CommonPrefix(tags, separator, maxcount)
+          if commonPrefix |> String.IsNullOrEmpty |> not then
+            node.Metadata.SetProperty("prefix", commonPrefix)
+          else
+            node.Metadata.SetProperty("prefix", "(mixed)")
+    | None -> ()
     do
       cp $"Saving \fg{o.OutputFile}\f0."
       cp $"  (\fb{superGraph.NodeCount}\f0 nodes, \fc{superGraph.EdgeCount}\f0 edges, \fy{superGraph.SeedCount}\f0 seeds, \fo{superGraph.SinkCount}\f0 sinks)"
@@ -69,6 +81,9 @@ let run args =
       rest |> parseMore {o with OutputFile = file}
     | "-prop" :: name :: rest ->
       rest |> parseMore {o with Key = SuperKey.Propname(name)}
+    | "-prefix" :: separator :: maxcount :: rest ->
+      let n = maxcount |> Int32.Parse
+      rest |> parseMore {o with PrefixSpec = (separator, n) |> Some}
     | [] ->
       if o.InputFile |> String.IsNullOrEmpty then
         cp "\foNo input file (\fg-i\fo) given\f0."
@@ -92,6 +107,7 @@ let run args =
     InputFile = null
     OutputFile = null
     Key = SuperKey.Propname("category")
+    PrefixSpec = None
   }
   match oo with
   | Some(o) ->

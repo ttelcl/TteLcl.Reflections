@@ -215,11 +215,17 @@ public class Graph: IHasMetadata
     {
       var classification = kvp.Key;
       var superNode = result.AddNode(classification);
+      var nodeTagCount = 0;
       // add tags to link back to the original nodes
       foreach(var nodeKey in kvp.Value)
       {
-        superNode.Metadata.AddTag("node", nodeKey);
+        if(superNode.Metadata.AddTag("node", nodeKey))
+        {
+          nodeTagCount++;
+        }
       }
+      superNode.Metadata.Properties["sublabel"] =
+        $"({nodeTagCount} nodes)";
     }
     // Then add edges
     foreach(var kvp in classificationMap)

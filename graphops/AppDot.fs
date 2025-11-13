@@ -13,9 +13,15 @@ open TteLcl.Graphs.Dot
 open ColorPrint
 open CommonTools
 
+type private SubgraphKind =
+  | SeedSinkRankOnly
+  | SeedSinkCluster
+  | ByProperty of string
+
 type private Options = {
   InputFile: string
   OutputFile: string
+  Subgraph: SubgraphKind
 }
 
 let private runDot o =
@@ -27,21 +33,39 @@ let private runDot o =
   do
     cp $"Writing \fg{o.OutputFile}\f0."
     use dw = new DotFileWriter(o.OutputFile + ".tmp", true, horizontal = false)
-    // dw.WriteProperty("TBbalance", "min")
-    let classification = graph.ClassifyNodes((fun n -> n.Kind.ToString()))
+    let classification =
+      match o.Subgraph with
+      | SeedSinkRankOnly 
+      | SeedSinkCluster ->
+        graph.ClassifyNodes((fun n -> n.Kind.ToString()))
+      | ByProperty(propName) ->
+        graph.ClassifyNodes(propName)
     for kvp in classification do
       let cls = kvp.Key
-      use _ = dw.StartSubGraph("cluster_" + cls, null)
+      let subgraphid, rank, subgraphlabel =
+        match o.Subgraph with
+        | SeedSinkRankOnly -> 
+          match cls with
+          | "Seed" | "Sink" -> (null, "same", null)
+          | _ -> (null, null, null)
+        | SeedSinkCluster ->
+          ("cluster_" + cls, null, cls)
+        | ByProperty(propName) ->
+          ($"cluster_{propName}_{cls}", null, cls)
+      use _ = dw.StartSubGraph(subgraphid, rank)
       for node in kvp.Value do
-        let properties = node.GetProperties()
-        let ok, moduleName = properties.TryGetValue("module")
-        let sublabels = if ok then [ moduleName ] else []
+        let sublabels =
+          [| "sublabel" ; "module"|]
+          |> node.Metadata.MapProperties
+          |> Seq.toList
         use _ = dw.StartNode(node.Key, sublabels, "box")
         if node.Key |> seedKeys.Contains then
           dw.WriteProperty("color", "#ccdd55")
         elif node.Key |> sinkKeys.Contains then
           dw.WriteProperty("color", "#cc55dd")
         ()
+      if subgraphlabel |> String.IsNullOrEmpty |> not then
+        dw.WriteProperty("label", subgraphlabel)
     for node in graph.Nodes.Values do
       for edge in node.Targets.Values do
         let src = edge.Source.Key
@@ -69,6 +93,10 @@ let run args =
       rest |> parseMore {o with InputFile = file}
     | "-o" :: file :: rest ->
       rest |> parseMore {o with OutputFile = file}
+    | "-prop" :: propname :: rest ->
+      rest |> parseMore {o with Subgraph = SubgraphKind.ByProperty(propname)}
+    | "-cluster" :: rest ->
+      rest |> parseMore {o with Subgraph = SubgraphKind.SeedSinkCluster}
     | [] ->
       if o.InputFile |> String.IsNullOrEmpty then
         cp "\foNo input file (\fg-i\fo) given\f0."
@@ -90,6 +118,7 @@ let run args =
   let oo = args |> parseMore {
     InputFile = null
     OutputFile = null
+    Subgraph = SubgraphKind.SeedSinkRankOnly
   }
   match oo with
   | Some(o) ->
