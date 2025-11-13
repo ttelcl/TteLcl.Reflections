@@ -10,7 +10,7 @@ let usage focus =
   cp "\fographops tags \fg-i \fcfile.graph.json\f0 "
   cp "  List node tags in the graph"
   cp ""
-  cp "\fographops purify \fg-i \fcinputfile \f0[\fg-o \fcoutputfile\f0]"
+  cp "\fographops purify \fg-i \fcinputfile \f0[\fg-o \fcoutputfile\f0] [\fg-breakcircles\f0]"
   cp "  Remove superfluous edges"
   cp ""
   cp "\fographops filter \fg-i \fcinputfile\f0 [\fg-include\f0|\fg-exclude\f0] {\fg-n \fctag\f0} [\fg-o \fcoutputfile\f0]"

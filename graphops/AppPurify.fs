@@ -15,6 +15,7 @@ open CommonTools
 type private Options = {
   InputFile: string
   OutputFile: string
+  BreakCircles: bool
 }
 
 let private runPurify o =
@@ -26,7 +27,7 @@ let private runPurify o =
   cp $"  Seed nodes: \fy{seeds}\f0."
   let sinks = String.Join("\f0,\fo ", analyzer.Sinks)
   cp $"  Sink nodes: \fo{sinks}\f0."
-  let reachMap = analyzer.GetReachMap()
+  let reachMap = analyzer.GetReachMap(o.BreakCircles)
   let purified = reachMap.NotInSelfProjection(analyzer.TargetEdges)
   let purified = new KeySetMapView(purified)
   graph.DisconnectTargetsExcept(purified, true);
@@ -49,6 +50,8 @@ let run args =
       rest |> parseMore {o with InputFile = file}
     | "-o" :: file :: rest ->
       rest |> parseMore {o with OutputFile = file}
+    | "-breakcircles" :: rest ->
+      rest |> parseMore {o with BreakCircles = true}
     | [] ->
       if o.InputFile |> String.IsNullOrEmpty then
         cp "\foNo input file (\fg-i\fo) given\f0."
@@ -70,6 +73,7 @@ let run args =
   let oo = args |> parseMore {
     InputFile = null
     OutputFile = null
+    BreakCircles = false
   }
   match oo with
   | Some(o) ->

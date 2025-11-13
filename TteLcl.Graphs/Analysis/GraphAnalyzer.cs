@@ -103,11 +103,11 @@ public class GraphAnalyzer
   /// Get the map that maps each node to its 'reach' (the set of nodes reachable from that node,
   /// excluding the node itself). This is calculated on first call, then cached.
   /// </summary>
-  public KeySetMapView GetReachMap()
+  public KeySetMapView GetReachMap(bool skipCircles = false)
   {
     if(_reachMap == null)
     {
-      _reachMap = CalculatePowerMap(TargetEdges);
+      _reachMap = CalculatePowerMap(TargetEdges, skipCircles);
     }
     return _reachMap;
   }
@@ -116,11 +116,11 @@ public class GraphAnalyzer
   /// Get the map that maps each node to its 'reach' (the set of nodes reachable from that node,
   /// excluding the node itself). This is calculated on first call, then cached.
   /// </summary>
-  public KeySetMapView GetDomainMap()
+  public KeySetMapView GetDomainMap(bool skipCircles = false)
   {
     if(_domainMap == null)
     {
-      _domainMap = CalculatePowerMap(SourceEdges);
+      _domainMap = CalculatePowerMap(SourceEdges, skipCircles);
     }
     return _domainMap;
   }
@@ -134,16 +134,18 @@ public class GraphAnalyzer
   /// for each node.
   /// </summary>
   /// <param name="edges"></param>
+  /// <param name="skipCircles"></param>
   /// <returns></returns>
   public KeySetMapView CalculatePowerMap(
-    KeySetMapView edges)
+    KeySetMapView edges,
+    bool skipCircles = false)
   {
     var pm = new KeySetMap();
     var guard = new KeySet();
     foreach(var seed in _nodes)
     {
       // calculate missing powermap entries starting from seed
-      FillPowerSet(seed, edges, pm, guard);
+      FillPowerSet(seed, edges, pm, guard, skipCircles);
     }
     return new KeySetMapView(pm);
   }
@@ -164,17 +166,28 @@ public class GraphAnalyzer
   /// for a seed that is in this set indicates a circular dependency in
   /// <paramref name="edges"/>, causing an abort.
   /// </param>
+  /// <param name="skipCircles">
+  /// If true, stop recusrion when detecting a circular dependency instead
+  /// of aborting. This breaks dependency cycles at a "random" point
+  /// </param>
   /// <returns></returns>
   private KeySet FillPowerSet(
     string seed,
     KeySetMapView edges,
     KeyMap<KeySet> powerMap,
-    KeySet circularGuard)
+    KeySet circularGuard,
+    bool skipCircles)
   {
     if(!powerMap.TryGetValue(seed, out var powerSet))
     {
       if(circularGuard.Contains(seed))
       {
+        if(skipCircles)
+        {
+          powerSet = new KeySet(edges[seed]);
+          powerMap[seed] = powerSet;
+          return powerSet;
+        }
         var guardSet = String.Join(", ", circularGuard);
         throw new InvalidOperationException(
           $"Found a circular dependency while processing '{seed}'. Guard set = {guardSet}");
@@ -185,7 +198,7 @@ public class GraphAnalyzer
       {
         powerSet.Add(next);
         // recurse
-        var nextSet = FillPowerSet(next, edges, powerMap, circularGuard);
+        var nextSet = FillPowerSet(next, edges, powerMap, circularGuard, skipCircles);
         powerSet.UnionWith(nextSet);
       }
       powerMap[seed] = powerSet;
