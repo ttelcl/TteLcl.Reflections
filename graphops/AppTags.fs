@@ -19,9 +19,11 @@ type private Options = {
 let private runTags o =
   cp $"Loading \fg{o.InputFile}\f0."
   let graph = o.InputFile |> Graph.DeserializeFile
-  let nodeCount = graph.Nodes.Count
-  let edgecount = graph.Nodes.Values |> Seq.sumBy (fun n -> n.Targets.Count)
-  cp $"  Loaded \fb{nodeCount}\f0 nodes and \fb{edgecount}\f0 edges."
+  cp $"  (\fb{graph.NodeCount}\f0 nodes, \fc{graph.EdgeCount}\f0 edges, \fy{graph.SeedCount}\f0 seeds, \fo{graph.SinkCount}\f0 sinks)"
+  let seeds = String.Join("\f0,\fy ", graph.SeedNodes |> Seq.map (fun n -> n.Key))
+  cp $"  Seed nodes: \fy{seeds}\f0."
+  let sinks = String.Join("\f0,\fo ", graph.SinkNodes |> Seq.map (fun n -> n.Key))
+  cp $"  Sink nodes: \fo{sinks}\f0."
   let nodeTags =
     graph.Nodes.Values
     |> Seq.collect (fun n -> n.Metadata.Tags)

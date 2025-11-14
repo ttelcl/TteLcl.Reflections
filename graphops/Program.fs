@@ -13,7 +13,9 @@ let rec run arglist =
     verbose <- true
     rest |> run
   | "--help" :: _
-  | "-h" :: _
+  | "-h" :: _ ->
+    Usage.usage "all"
+    0
   | [] ->
     Usage.usage ""
     0  // program return status code to the operating system; 0 == "OK"
@@ -23,6 +25,13 @@ let rec run arglist =
     rest |> AppPurify.run
   | "filter" :: rest ->
     rest |> AppFilter.run
+  | "dot" :: rest ->
+    rest |> AppDot.run
+  | "supergraph" :: rest 
+  | "super" :: rest ->
+    rest |> AppSuper.run
+  | "prune" :: rest ->
+    rest |> AppPrune.run
   | x :: _ ->
     cp $"\frUnrecognized command: \fo{x}\f0."
     cp ""

@@ -46,6 +46,27 @@ public class GraphNode: IHasMetadata, IHasKey
   /// </summary>
   public string Key { get; }
 
+  /// <summary>
+  /// True if the node is a seed (has no incoming edges)
+  /// </summary>
+  public bool IsSeed => Sources.Count == 0;
+
+  /// <summary>
+  /// True if the node is a sink (has no outgoing edges)
+  /// </summary>
+  public bool IsSink => Targets.Count == 0;
+
+  /// <summary>
+  /// The node kind (seed, sink, neither, or both)
+  /// </summary>
+  public NodeKind Kind =>
+    (IsSeed, IsSink) switch {
+      (false, false) => NodeKind.Other,
+      (false, true) => NodeKind.Sink,
+      (true, false) => NodeKind.Seed,
+      (true, true) => NodeKind.Loose,
+    };
+
   /// <inheritdoc/>
   public Metadata Metadata { get; }
 
@@ -135,8 +156,7 @@ public class GraphNode: IHasMetadata, IHasKey
   /// <param name="targetsToKeep"></param>
   public void DisconnectAllExcept(IEnumerable<string> targetsToKeep)
   {
-    var targetsToRemove = new KeySet(_targets.Keys);
-    targetsToRemove.ExceptWith(targetsToKeep);
+    var targetsToRemove = KeySet.CreateDifference(_targets.Keys, targetsToKeep);
     foreach(var targetKey in targetsToRemove)
     {
       DisconnectTarget(targetKey);

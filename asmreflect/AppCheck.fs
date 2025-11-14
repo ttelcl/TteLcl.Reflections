@@ -85,15 +85,24 @@ let private runCheck o =
       let added, node = builder.AddAssembly(asm)
       ()
     let pendingQueue = builder.SeedAssemblies(seedAssemblies);
+    let eraser = "\r" + new String(' ', Console.WindowWidth - 1) + "\r"
     cp $"Pending: \fb{pendingQueue.Count}\f0."
     while pendingQueue.Count > 0 do
       let pendingBefore = pendingQueue.Count
       let node = pendingQueue.Peek()
       let name = node.ShortName
       let added = builder.ConnectNext(pendingQueue)
+      let message = $"\fk{pendingBefore,3}\f0 -> \fb{pendingQueue.Count,3}\f0  \fc+{added,3}\f0  \fg{name,-60} \fy{node.Module}\f0."
       if verbose then
-        cp $"\fk{pendingBefore,3}\f0 -> \fb{pendingQueue.Count,3}\f0  \fc+{added,3}\f0  \fg{name,-60} \fy{node.Tag}\f0."
+        cp message
+      else
+        cpx $"{eraser}{message}  "
       ()
+    let message = $"\fb{builder.Graph.Nodes.Count}\f0 assemblies loaded"
+    if verbose |> not then
+      cp $"{eraser}{message}"
+    else
+      cp message
     let fileName = $"{o.Dependencies}.asm-graph.json"
     do
       let graph = builder.Graph

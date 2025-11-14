@@ -54,4 +54,13 @@ public class GraphEdge: IHasMetadata
     throw new ArgumentException(
       $"Invalid endpoint {endpoint.Key}. Not part of edge [{Source.Key} -> {Target.Key}]");
   }
+
+  /// <summary>
+  /// Disconnect this edge. Returns true on success, false if it wasn't connected.
+  /// </summary>
+  /// <returns></returns>
+  public bool Disconnect()
+  {
+    return Source.DisconnectTarget(Target.Key) == this;
+  }
 }

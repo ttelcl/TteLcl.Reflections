@@ -194,7 +194,7 @@ public class AssemblyGraph
       meta.SetProperty("version", anode.AssemblyName.Version?.ToString());
       meta.SetProperty("fullname", anode.FullName);
       meta.SetProperty("file", anode.FileName);
-      meta.SetProperty("tag", anode.Tag);
+      meta.SetProperty("module", anode.Module);
       foreach(var tag in anode.Tags)
       {
         var parts = tag.Split("::", 2);

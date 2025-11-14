@@ -27,18 +27,35 @@ type private Options = {
 let private runFilter o =
   cp $"Loading \fg{o.InputFile}\f0."
   let graph = o.InputFile |> Graph.DeserializeFile
+  cp $"  (\fb{graph.NodeCount}\f0 nodes, \fc{graph.EdgeCount}\f0 edges, \fy{graph.SeedCount}\f0 seeds, \fo{graph.SinkCount}\f0 sinks)"
   let taggedNodes = graph.FindTaggedNodes(o.Tags, "") |> Seq.toArray
   if taggedNodes.Length = 0 then
     cp "\foThe tags did not match any nodes. Aborting\f0."
     1
   else
-    cp $"Found \fb{taggedNodes.Length}\f0 matching nodes."
-    taggedNodes |> Seq.map (fun n -> n.Key) |> graph.RemoveNodes
-    do
-      cp $"Saving \fg{o.OutputFile}\f0."
-      o.OutputFile + ".tmp" |> graph.Serialize
-    o.OutputFile |> finishFile
-    0
+    match o.Mode with
+    | Exclude ->
+      cp $"Found \fb{taggedNodes.Length}\f0 matching nodes to \fgexclude\f0."
+      taggedNodes |> Seq.map (fun n -> n.Key) |> graph.RemoveNodes
+      do
+        cp $"Saving \fg{o.OutputFile}\f0."
+        cp $"  (\fb{graph.NodeCount}\f0 nodes, \fc{graph.EdgeCount}\f0 edges, \fy{graph.SeedCount}\f0 seeds, \fo{graph.SinkCount}\f0 sinks)"
+        o.OutputFile + ".tmp" |> graph.Serialize
+      o.OutputFile |> finishFile
+      0
+    | Include ->
+      cp $"Found \fb{taggedNodes.Length}\f0 matching nodes to \fginclude\f0."
+      taggedNodes |> Seq.map (fun n -> n.Key) |> graph.RemoveOtherNodes
+      do
+        cp $"Saving \fg{o.OutputFile}\f0."
+        cp $"  (\fb{graph.NodeCount}\f0 nodes, \fc{graph.EdgeCount}\f0 edges, \fy{graph.SeedCount}\f0 seeds, \fo{graph.SinkCount}\f0 sinks)"
+        o.OutputFile + ".tmp" |> graph.Serialize
+      o.OutputFile |> finishFile
+      0
+    | Undefined ->
+      cp "\frError\fo: Missing \fg-exclude\fo or \fg-include\f0."
+      1
+     
 
 let run args =
   let rec parseMore o args =

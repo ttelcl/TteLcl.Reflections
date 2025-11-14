@@ -40,6 +40,32 @@ public class KeySet: ISet<string>, IReadOnlySet<string>
   }
 
   /// <summary>
+  /// Create a new <see cref="KeySet"/> and add the given keys. Functionally
+  /// equivalent to <see cref="KeySet(IEnumerable{string})"/>, but easier
+  /// to use in fluent calls
+  /// </summary>
+  /// <param name="keys"></param>
+  /// <returns></returns>
+  public static KeySet CreateFrom(IEnumerable<string> keys)
+  {
+    return new KeySet(keys);
+  }
+
+  /// <summary>
+  /// Create a new <see cref="KeySet"/> containing all keys in <paramref name="allKeys"/>,
+  /// except the ones in <paramref name="keysToExclude"/>
+  /// </summary>
+  /// <param name="allKeys"></param>
+  /// <param name="keysToExclude"></param>
+  /// <returns></returns>
+  public static KeySet CreateDifference(IEnumerable<string> allKeys, IEnumerable<string> keysToExclude)
+  {
+    var result = new KeySet(allKeys);
+    result.ExceptWith(keysToExclude);
+    return result;
+  }
+
+  /// <summary>
   /// True if this set contains the key of the provided object
   /// </summary>
   /// <param name="ihk"></param>

@@ -19,8 +19,6 @@ public class GraphAnalyzer
   private readonly KeySet _nodes;
   private readonly KeySet _seeds;
   private readonly KeySet _sinks;
-  private readonly KeySetMap _sourceEdges;
-  private readonly KeySetMap _targetEdges;
   private KeySetMapView? _reachMap = null;
   private KeySetMapView? _domainMap = null;
 
@@ -33,16 +31,16 @@ public class GraphAnalyzer
     _nodes = new KeySet(g.Nodes.Keys);
     _seeds = new KeySet();
     _sinks = new KeySet();
-    _sourceEdges = new KeySetMap();
-    _targetEdges = new KeySetMap();
-    SourceEdges = new KeySetMapView(_sourceEdges);
-    TargetEdges = new KeySetMapView(_targetEdges);
+    var sourceEdges = new KeySetMap();
+    var targetEdges = new KeySetMap();
+    SourceEdges = new KeySetMapView(sourceEdges);
+    TargetEdges = new KeySetMapView(targetEdges);
     foreach(var node in g.Nodes.Values)
     {
       var sourceSet = new KeySet(node.Sources.Keys);
       var targetSet = new KeySet(node.Targets.Keys);
-      _sourceEdges[node.Key] = sourceSet;
-      _targetEdges[node.Key] = targetSet;
+      sourceEdges[node.Key] = sourceSet;
+      targetEdges[node.Key] = targetSet;
       if(sourceSet.Count == 0)
       {
         _seeds.Add(node.Key);
@@ -81,31 +79,35 @@ public class GraphAnalyzer
   /// </summary>
   public KeySetMapView TargetEdges { get; }
 
-  ///// <summary>
-  ///// Returns the node keys of nodes that have an edge to the node with the given
-  ///// <paramref name="targetKey"/> as key.
-  ///// </summary>
-  ///// <param name="targetKey"></param>
-  ///// <returns></returns>
-  //public IReadOnlyCollection<string> SourceKeys(string targetKey) => SourceEdges[targetKey];
+  /// <summary>
+  /// The total number of nodes in this graph
+  /// </summary>
+  public int NodeCount => _nodes.Count;
 
-  ///// <summary>
-  ///// Returns the node keys of nodes that have an edge from the node with the given
-  ///// <paramref name="sourceKey"/> as key.
-  ///// </summary>
-  ///// <param name="sourceKey"></param>
-  ///// <returns></returns>
-  //public IReadOnlyCollection<string> TargetKeys(string sourceKey) => TargetEdges[sourceKey];
+  /// <summary>
+  /// The total number of edges in this graph
+  /// </summary>
+  public int EdgeCount => TargetEdges.Values.Sum(e => e.Count);
+
+  /// <summary>
+  /// The number of seed nodes in this graph (nodes without incoming edges)
+  /// </summary>
+  public int SeedCount => _seeds.Count;
+
+  /// <summary>
+  /// The number of sink nodes in this graph (nodes without outgoing edges)
+  /// </summary>
+  public int SinkCount => _sinks.Count;
 
   /// <summary>
   /// Get the map that maps each node to its 'reach' (the set of nodes reachable from that node,
   /// excluding the node itself). This is calculated on first call, then cached.
   /// </summary>
-  public KeySetMapView GetReachMap()
+  public KeySetMapView GetReachMap(bool skipCircles = false)
   {
     if(_reachMap == null)
     {
-      _reachMap = CalculatePowerMap(TargetEdges);
+      _reachMap = CalculatePowerMap(TargetEdges, skipCircles);
     }
     return _reachMap;
   }
@@ -114,11 +116,11 @@ public class GraphAnalyzer
   /// Get the map that maps each node to its 'reach' (the set of nodes reachable from that node,
   /// excluding the node itself). This is calculated on first call, then cached.
   /// </summary>
-  public KeySetMapView GetDomainMap()
+  public KeySetMapView GetDomainMap(bool skipCircles = false)
   {
     if(_domainMap == null)
     {
-      _domainMap = CalculatePowerMap(SourceEdges);
+      _domainMap = CalculatePowerMap(SourceEdges, skipCircles);
     }
     return _domainMap;
   }
@@ -132,16 +134,18 @@ public class GraphAnalyzer
   /// for each node.
   /// </summary>
   /// <param name="edges"></param>
+  /// <param name="skipCircles"></param>
   /// <returns></returns>
   public KeySetMapView CalculatePowerMap(
-    KeySetMapView edges)
+    KeySetMapView edges,
+    bool skipCircles = false)
   {
     var pm = new KeySetMap();
     var guard = new KeySet();
     foreach(var seed in _nodes)
     {
       // calculate missing powermap entries starting from seed
-      FillPowerSet(seed, edges, pm, guard);
+      FillPowerSet(seed, edges, pm, guard, skipCircles);
     }
     return new KeySetMapView(pm);
   }
@@ -162,17 +166,28 @@ public class GraphAnalyzer
   /// for a seed that is in this set indicates a circular dependency in
   /// <paramref name="edges"/>, causing an abort.
   /// </param>
+  /// <param name="skipCircles">
+  /// If true, stop recusrion when detecting a circular dependency instead
+  /// of aborting. This breaks dependency cycles at a "random" point
+  /// </param>
   /// <returns></returns>
   private KeySet FillPowerSet(
     string seed,
     KeySetMapView edges,
     KeyMap<KeySet> powerMap,
-    KeySet circularGuard)
+    KeySet circularGuard,
+    bool skipCircles)
   {
     if(!powerMap.TryGetValue(seed, out var powerSet))
     {
       if(circularGuard.Contains(seed))
       {
+        if(skipCircles)
+        {
+          powerSet = new KeySet(edges[seed]);
+          powerMap[seed] = powerSet;
+          return powerSet;
+        }
         var guardSet = String.Join(", ", circularGuard);
         throw new InvalidOperationException(
           $"Found a circular dependency while processing '{seed}'. Guard set = {guardSet}");
@@ -183,7 +198,7 @@ public class GraphAnalyzer
       {
         powerSet.Add(next);
         // recurse
-        var nextSet = FillPowerSet(next, edges, powerMap, circularGuard);
+        var nextSet = FillPowerSet(next, edges, powerMap, circularGuard, skipCircles);
         powerSet.UnionWith(nextSet);
       }
       powerMap[seed] = powerSet;

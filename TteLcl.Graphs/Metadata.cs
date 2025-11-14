@@ -314,4 +314,69 @@ public class Metadata: IHasMetadata
       }
     }
   }
+
+  /// <summary>
+  /// Return a sequence of property values for each of the given property names,
+  /// skipping missing and empty properties
+  /// </summary>
+  /// <param name="propertyNames"></param>
+  /// <returns></returns>
+  public IEnumerable<string> MapProperties(IEnumerable<string> propertyNames)
+  {
+    foreach(var propName in propertyNames)
+    {
+      if(Properties.TryGetValue(propName, out var propValue) && !String.IsNullOrEmpty(propValue))
+      {
+        yield return propValue;
+      }
+    }
+  }
+
+  /// <summary>
+  /// Try to find a common prefix in a set of strings (<paramref name="names"/>) while looking at
+  /// those strings as consisting of multiple segments separated by <paramref name="separator"/>.
+  /// Only the first <paramref name="maxCount"/> segments are used. Returns an empty string
+  /// if there were no <paramref name="names"/> or there was no common prefix
+  /// </summary>
+  /// <param name="names"></param>
+  /// <param name="separator"></param>
+  /// <param name="maxCount"></param>
+  /// <returns></returns>
+  public static string CommonPrefix(IEnumerable<string> names, string separator = "/", int maxCount = 1)
+  {
+    string? prefix = null;
+    var segmentCount = maxCount;
+    foreach(var name in names)
+    {
+      var parts = name.Split(separator, segmentCount+1).ToList();
+      if(parts.Count > segmentCount)
+      {
+        parts = parts[0..segmentCount];
+      }
+      var nameShort = String.Join(separator, parts);
+      if(prefix == null)
+      {
+        prefix = nameShort;
+        segmentCount = parts.Count;
+        continue;
+      }
+      var prefixParts = prefix.Split(separator, segmentCount+1);
+      while(prefix != "" && !nameShort.StartsWith(prefix))
+      {
+        segmentCount--;
+        if(segmentCount == 0)
+        {
+          prefix = "";
+          break;
+        }
+        prefix = String.Join(separator, prefixParts[0..segmentCount]);
+      }
+      if(segmentCount == 0)
+      {
+        prefix = "";
+        break;
+      }
+    }
+    return prefix ?? "";
+  }
 }
