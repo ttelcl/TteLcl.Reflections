@@ -32,6 +32,9 @@ let rec run arglist =
     rest |> AppSuper.run
   | "prune" :: rest ->
     rest |> AppPrune.run
+  | "csv" :: "export" :: rest
+  | "csv" :: rest ->
+    rest |> AppCsvExport.run
   | x :: _ ->
     cp $"\frUnrecognized command: \fo{x}\f0."
     cp ""

@@ -60,6 +60,13 @@ let usage focus =
     cp "  \fg-prefix \fcseparator \fCmaxcount\f0    Synthesize a property 'prefix' containing the common prefix of contained node names"
     cp "  \fx        \fx          \fx        \fx    Prefixes are based on up to \fCmaxcount\f0 segments when splitting names with \fcseparator\f0."
     cp ""
+  if showSection "csv" then
+    cp "\fographops csv \f0[\foexport\f0] \fg-i \fcinputfile\f0 {\fg-np \fo*\f0|\fcproperty\f0}"
+    cp "  Export a graph to a set of CSV files: one for nodes (and their properties), one for edges, one for node tags (including keyed node tags)."
+  if showDetails "csv" then
+    cp "  \fg-np \fo*\f0               Export all node properties as columns in the node list."
+    cp "  \fg-np \fcproperty\f0        Export the named node property as a column in the node list."
+    cp ""
   if true then
     cp "Common options:"
     cp "  \fg-h             \f0Show help"
