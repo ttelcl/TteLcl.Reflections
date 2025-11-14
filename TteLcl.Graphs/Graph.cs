@@ -278,6 +278,95 @@ public class Graph: IHasMetadata
   }
 
   /// <summary>
+  /// Add an edge between two existing nodes
+  /// </summary>
+  /// <param name="source">
+  /// The key of the source node
+  /// </param>
+  /// <param name="target">
+  /// The key of the target node
+  /// </param>
+  /// <param name="metadata">
+  /// Optional metadata for the edge
+  /// </param>
+  /// <returns></returns>
+  /// <exception cref="InvalidOperationException"></exception>
+  public GraphEdge Connect(string source, string target, Metadata? metadata = null)
+  {
+    if(!_nodes.TryGetValue(source, out var sourceNode))
+    {
+      throw new InvalidOperationException(
+        $"Missing source node: '{source}'");
+    }
+    if(!_nodes.TryGetValue(target, out var targetNode))
+    {
+      throw new InvalidOperationException(
+        $"Missing target node: '{target}'");
+    }
+    return sourceNode.Connect(targetNode, metadata);
+  }
+
+  /// <summary>
+  /// Disconnect two nodes (if they were connected and existed)
+  /// </summary>
+  /// <param name="source">
+  /// The key of the source node of the edge to remove. If this node does not exist this method returns null.
+  /// </param>
+  /// <param name="target">
+  /// The key of the target node of the edge to remove. If this node does not exist this method returns null.
+  /// </param>
+  /// <returns>
+  /// Returns the edge that was removed or null if either endpoint node did not exist at all or there was no edge
+  /// between them.
+  /// </returns>
+  public GraphEdge? Disconnect(string source, string target)
+  {
+    if(!_nodes.TryGetValue(source, out var sourceNode))
+    {
+      return null;
+    }
+    return sourceNode.DisconnectTarget(target);
+  }
+
+  /// <summary>
+  /// Disconnect all source edges from a target node
+  /// </summary>
+  /// <param name="target"></param>
+  /// <returns></returns>
+  public IReadOnlyCollection<GraphEdge> DisconnectAllSources(string target)
+  {
+    var result = new List<GraphEdge>();
+    if(_nodes.TryGetValue(target, out var targetNode))
+    {
+      result.AddRange(targetNode.Sources.Values);
+      foreach(var edge in result)
+      {
+        edge.Disconnect();
+      }
+    }
+    return result;
+  }
+
+  /// <summary>
+  /// Disconnect all target edges from a source node
+  /// </summary>
+  /// <param name="source"></param>
+  /// <returns></returns>
+  public IReadOnlyCollection<GraphEdge> DisconnectAllTargets(string source)
+  {
+    var result = new List<GraphEdge>();
+    if(_nodes.TryGetValue(source, out var sourceNode))
+    {
+      result.AddRange(sourceNode.Targets.Values);
+      foreach(var edge in result)
+      {
+        edge.Disconnect();
+      }
+    }
+    return result;
+  }
+
+  /// <summary>
   /// Remove nodes in the given key set, as well as any edges to or from those nodes
   /// in the remaining nodes
   /// </summary>

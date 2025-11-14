@@ -51,7 +51,7 @@ let private runFilter o =
         cp $"  (\fb{graph.NodeCount}\f0 nodes, \fc{graph.EdgeCount}\f0 edges, \fy{graph.SeedCount}\f0 seeds, \fo{graph.SinkCount}\f0 sinks)"
         o.OutputFile + ".tmp" |> graph.Serialize
       o.OutputFile |> finishFile
-      1
+      0
     | Undefined ->
       cp "\frError\fo: Missing \fg-exclude\fo or \fg-include\f0."
       1

@@ -16,10 +16,11 @@
     <Compile Include="PrintUtils.fs" />
     <Compile Include="ExceptionTool.fs" />
     <Compile Include="Usage.fs" />
+    <Compile Include="AppDot.fs" />
     <Compile Include="AppTags.fs" />
     <Compile Include="AppFilter.fs" />
+    <Compile Include="AppPrune.fs" />
     <Compile Include="AppPurify.fs" />
-    <Compile Include="AppDot.fs" />
     <Compile Include="AppSuper.fs" />
     <Compile Include="Program.fs" />
     <None Include="README.md" />
