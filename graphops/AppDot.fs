@@ -18,10 +18,15 @@ type private SubgraphKind =
   | SeedSinkCluster
   | ByProperty of string
 
+type private Colorization =
+  | NoColor
+  | ColorPorts
+
 type private Options = {
   InputFile: string
   OutputFile: string
   Subgraph: SubgraphKind
+  Colors: Colorization
 }
 
 let private runDot o =
@@ -59,10 +64,11 @@ let private runDot o =
           |> node.Metadata.MapProperties
           |> Seq.toList
         use _ = dw.StartNode(node.Key, sublabels, "box")
-        if node.Key |> seedKeys.Contains then
-          dw.WriteProperty("color", "#ccdd55")
-        elif node.Key |> sinkKeys.Contains then
-          dw.WriteProperty("color", "#cc55dd")
+        if o.Colors = Colorization.ColorPorts then
+          if node.Key |> seedKeys.Contains then
+            dw.WriteProperty("color", "#ccdd55")
+          elif node.Key |> sinkKeys.Contains then
+            dw.WriteProperty("color", "#cc55dd")
         ()
       if subgraphlabel |> String.IsNullOrEmpty |> not then
         dw.WriteProperty("label", subgraphlabel)
@@ -97,6 +103,20 @@ let run args =
       rest |> parseMore {o with Subgraph = SubgraphKind.ByProperty(propname)}
     | "-cluster" :: rest ->
       rest |> parseMore {o with Subgraph = SubgraphKind.SeedSinkCluster}
+    | "-colorize" :: coloroption :: rest 
+    | "-color" :: coloroption :: rest ->
+      let colorization =
+        match coloroption with
+        | "ports" -> Colorization.ColorPorts |> Some
+        | "none" -> Colorization.NoColor |> Some
+        | x ->
+          cp $"\frUnknown color option \f0'\fo{x}\f0'"
+          None
+      match colorization with
+      | Some(c) ->
+        rest |> parseMore {o with Colors = c}
+      | None ->
+        None
     | [] ->
       if o.InputFile |> String.IsNullOrEmpty then
         cp "\foNo input file (\fg-i\fo) given\f0."
@@ -119,6 +139,7 @@ let run args =
     InputFile = null
     OutputFile = null
     Subgraph = SubgraphKind.SeedSinkRankOnly
+    Colors = Colorization.NoColor
   }
   match oo with
   | Some(o) ->
