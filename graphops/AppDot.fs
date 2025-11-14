@@ -17,6 +17,7 @@ type private SubgraphKind =
   | SeedSinkRankOnly
   | SeedSinkCluster
   | ByProperty of string
+  | NoPorts
 
 type private Colorization =
   | NoColor
@@ -27,6 +28,7 @@ type private Options = {
   OutputFile: string
   Subgraph: SubgraphKind
   Colors: Colorization
+  Horizontal: bool
 }
 
 let private runDot o =
@@ -37,9 +39,10 @@ let private runDot o =
   cp $"  (\fb{graph.NodeCount}\f0 nodes, \fc{graph.EdgeCount}\f0 edges, \fy{graph.SeedCount}\f0 seeds, \fo{graph.SinkCount}\f0 sinks)"
   do
     cp $"Writing \fg{o.OutputFile}\f0."
-    use dw = new DotFileWriter(o.OutputFile + ".tmp", true, horizontal = false)
+    use dw = new DotFileWriter(o.OutputFile + ".tmp", true, horizontal = o.Horizontal)
     let classification =
       match o.Subgraph with
+      | NoPorts
       | SeedSinkRankOnly 
       | SeedSinkCluster ->
         graph.ClassifyNodes((fun n -> n.Kind.ToString()))
@@ -53,6 +56,8 @@ let private runDot o =
           match cls with
           | "Seed" | "Sink" -> (null, "same", null)
           | _ -> (null, null, null)
+        | NoPorts -> 
+          (null, null, null)
         | SeedSinkCluster ->
           ("cluster_" + cls, null, cls)
         | ByProperty(propName) ->
@@ -83,7 +88,7 @@ let private runDot o =
   cp $"   Reminder on dot commands:"
   cp $"      \fGdot -Txdot -O {o.OutputFile}\f0 to generate laid out dot (xdot)"
   cp $"      \fGdot -Txdot_json -O {o.OutputFile}.xdot\f0 to convert that to json"
-
+  cp $"   (or use the 'Graphviz Preview' plugin in VS Code)"
   0
 
 let run args =
@@ -103,6 +108,13 @@ let run args =
       rest |> parseMore {o with Subgraph = SubgraphKind.ByProperty(propname)}
     | "-cluster" :: rest ->
       rest |> parseMore {o with Subgraph = SubgraphKind.SeedSinkCluster}
+    | "-ports" :: rest ->
+      rest |> parseMore {o with Subgraph = SubgraphKind.SeedSinkRankOnly}
+    | "-noports" :: rest ->
+      rest |> parseMore {o with Subgraph = SubgraphKind.NoPorts}
+    | "-lr" :: rest 
+    | "-horizontal" :: rest ->
+      rest |> parseMore {o with Horizontal = true}
     | "-colorize" :: coloroption :: rest 
     | "-color" :: coloroption :: rest ->
       let colorization =
@@ -140,6 +152,7 @@ let run args =
     OutputFile = null
     Subgraph = SubgraphKind.SeedSinkRankOnly
     Colors = Colorization.NoColor
+    Horizontal = false
   }
   match oo with
   | Some(o) ->
