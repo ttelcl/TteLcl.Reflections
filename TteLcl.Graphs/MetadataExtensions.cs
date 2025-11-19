@@ -81,4 +81,15 @@ public static class MetadataExtensions
   {
     owner.Metadata.Import(source.Metadata, tags, properties);
   }
+
+  /// <summary>
+  /// Return a set of all property names found in the metadata instances of the given metadata owners
+  /// </summary>
+  /// <param name="owners"></param>
+  /// <returns></returns>
+  public static IReadOnlyCollection<string> AllPropertyNames<T>(this IEnumerable<T> owners)
+    where T: IHasMetadata
+  {
+    return Metadata.AllPropertyNames(owners.Select(owner => owner.Metadata));
+  }
 }

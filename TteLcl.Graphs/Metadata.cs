@@ -55,6 +55,21 @@ public class Metadata: IHasMetadata
   }
 
   /// <summary>
+  /// Get the value for the given property or the value of <paramref name="def"/> if not defined
+  /// </summary>
+  /// <param name="key">
+  /// The name of the property to get
+  /// </param>
+  /// <param name="def">
+  /// The default value returned if the property is missing
+  /// </param>
+  /// <returns></returns>
+  public string GetPropertyOrDefault(string key, string def = "")
+  {
+    return Properties.TryGetValue(key, out var value) ? value : def;
+  }
+
+  /// <summary>
   /// "keyed tags": string-stringset key-values pairs with a unique,
   /// case insensitive, key. The sets are automatically created upon access.
   /// If creating a set upon access is undesirable (read-only scenarios), use 
@@ -378,5 +393,23 @@ public class Metadata: IHasMetadata
       }
     }
     return prefix ?? "";
+  }
+
+  /// <summary>
+  /// Return a set of all property names found in the given metadata instances
+  /// </summary>
+  /// <param name="metadatas"></param>
+  /// <returns></returns>
+  public static IReadOnlyCollection<string> AllPropertyNames(IEnumerable<Metadata> metadatas)
+  {
+    var result = new HashSet<string>();
+    foreach(var metadata in metadatas)
+    {
+      foreach(var propName in metadata.Properties.Keys)
+      {
+        result.Add(propName);
+      }
+    }
+    return result;
   }
 }

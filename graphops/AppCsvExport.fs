@@ -6,6 +6,9 @@ open System.Reflection
 
 open Newtonsoft.Json
 
+open TteLcl.Csv
+open TteLcl.Csv.Core
+
 open TteLcl.Graphs
 open TteLcl.Graphs.Analysis
 
@@ -19,8 +22,38 @@ type private Options = {
 }
 
 let private runCsvExport o =
-  cp "\frNot yet implemented"
-  1
+  cp $"Loading \fg{o.InputFile}\f0."
+  let graph = o.InputFile |> Graph.DeserializeFile
+  cp $"  (\fb{graph.NodeCount}\f0 nodes, \fc{graph.EdgeCount}\f0 edges, \fy{graph.SeedCount}\f0 seeds, \fo{graph.SinkCount}\f0 sinks)"
+  let allPropertyNames = graph.Nodes.Values.AllPropertyNames()
+  let nodePropertyNames =
+    if o.NodePropertyAuto then
+      if o.NodePropertyColumns.Length > 0 then
+        cp "\foWarning: merging of \fg-np *\fo and explicit \fg-np\f0 options is NYI\f0!"
+      allPropertyNames |> Seq.toList
+    else
+      o.NodePropertyColumns
+  let nodesFileName = Graph.DeriveMissingName(o.InputFile, ".nodes.csv")
+  do
+    cp $"Saving \fg{nodesFileName}\f0."
+    let builder = new CsvWriteRowBuilder()
+    let nameCell = builder.AddCell("name")
+    let kindCell = builder.AddCell("kind")
+    let propCells = nodePropertyNames |> List.map (fun propName -> builder.AddCell(propName))
+    let rowBuffer = builder.Build()
+    use cw = new CsvRawWriter(nodesFileName+".tmp")
+    rowBuffer |> cw.WriteHeader
+    for node in graph.Nodes.Values do
+      node.Key |> nameCell.Set
+      node.Kind.ToString() |> kindCell.Set
+      let metadata = node.Metadata
+      for propCell in propCells do
+        propCell.Name |> metadata.GetPropertyOrDefault |> propCell.Set
+      rowBuffer |> cw.WriteRow
+    ()
+  nodesFileName |> finishFile
+  
+  0
 
 let run args =
   let rec parseMore o args =
