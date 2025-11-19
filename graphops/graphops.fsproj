@@ -21,9 +21,14 @@
     <Compile Include="AppFilter.fs" />
     <Compile Include="AppPrune.fs" />
     <Compile Include="AppPurify.fs" />
+    <Compile Include="AppCsvExport.fs" />
     <Compile Include="AppSuper.fs" />
     <Compile Include="Program.fs" />
     <None Include="README.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="TteLcl.Csv" Version="0.1.0" />
   </ItemGroup>
 
   <ItemGroup>
