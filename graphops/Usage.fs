@@ -65,7 +65,7 @@ let usage focus =
     cp "  Export a graph to a set of CSV files: one for nodes (and their properties), one for edges, one for node tags (including keyed node tags)."
   if showDetails "csv" then
     cp "  \fg-np \fo*\f0               Export all node properties as columns in the node list."
-    cp "  \fg-np \fcproperty\f0        Export the named node property as a column in the node list."
+    cp "  \fg-np \fcproperty\f0        Export the named node property as a column in the node list and in the edge list for source and target nodes"
     cp ""
   if true then
     cp "Common options:"

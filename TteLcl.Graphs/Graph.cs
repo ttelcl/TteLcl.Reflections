@@ -122,6 +122,11 @@ public class Graph: IHasMetadata
   public int EdgeCount => _nodes.Values.Sum(n => n.Targets.Count);
 
   /// <summary>
+  /// Enumerates all edges in all nodes
+  /// </summary>
+  public IEnumerable<GraphEdge> Edges => _nodes.Values.SelectMany(n => n.Targets.Values);
+
+  /// <summary>
   /// Enumerate the seed nodes (calculated on the fly)
   /// </summary>
   public IEnumerable<GraphNode> SeedNodes => Nodes.Values.Where(n => n.Sources.Count == 0);

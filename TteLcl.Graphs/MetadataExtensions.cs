@@ -92,4 +92,15 @@ public static class MetadataExtensions
   {
     return Metadata.AllPropertyNames(owners.Select(owner => owner.Metadata));
   }
+
+  /// <summary>
+  /// Return a set of all tag keys found in the metadata instances of the given metadata owners
+  /// </summary>
+  /// <param name="owners"></param>
+  /// <returns></returns>
+  public static IReadOnlyCollection<string> AllTagKeys<T>(this IEnumerable<T> owners)
+    where T : IHasMetadata
+  {
+    return Metadata.AllTagKeys(owners.Select(owner => owner.Metadata));
+  }
 }

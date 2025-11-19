@@ -173,9 +173,23 @@ public class Metadata: IHasMetadata
   public IReadOnlySet<string> Tags => this[""];
 
   /// <summary>
-  /// The set of tag keys.
+  /// The set of tag keys, including the default key.
   /// </summary>
   public IReadOnlyCollection<string> TagKeys => _keyedTags.Keys;
+
+  /// <summary>
+  /// Get the number of tags for the given tag key (or the default tag key)
+  /// </summary>
+  /// <param name="key"></param>
+  /// <returns></returns>
+  public int TagCount(string key = "")
+  {
+    if(_keyedTags.TryGetValue(key, out var tags))
+    {
+      return tags.Count;
+    }
+    return 0;
+  }
 
   /// <summary>
   /// Import metadata from another metadata object
@@ -405,10 +419,22 @@ public class Metadata: IHasMetadata
     var result = new HashSet<string>();
     foreach(var metadata in metadatas)
     {
-      foreach(var propName in metadata.Properties.Keys)
-      {
-        result.Add(propName);
-      }
+      result.UnionWith(metadata.Properties.Keys);
+    }
+    return result;
+  }
+
+  /// <summary>
+  /// Returns a set containing all tag keys in the given metadata instances
+  /// </summary>
+  /// <param name="metadatas"></param>
+  /// <returns></returns>
+  public static IReadOnlyCollection<string> AllTagKeys(IEnumerable<Metadata> metadatas) {
+    var result = new HashSet<string>();
+    result.Add("");
+    foreach(var metadata in metadatas)
+    {
+      result.UnionWith(metadata.TagKeys);
     }
     return result;
   }
