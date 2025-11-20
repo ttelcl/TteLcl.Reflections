@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -161,7 +162,17 @@ public class AssemblyGraphLoader
           $"Bypassing nameless assembly '{nodeName}'");
         continue;
       }
-      var dependency = LoadContext.LoadFromAssemblyName(dependencyName); // possibly a true load
+      Assembly dependency;
+      try
+      {
+        dependency = LoadContext.LoadFromAssemblyName(dependencyName); // possibly a true load
+      }
+      catch(FileNotFoundException ex)
+      {
+        throw new InvalidOperationException(
+          $"Error loading dependency '{dependencyName}' of assembly '{nodeName}' ({assembly.Location})",
+          ex);
+      }
       var isnew = AddAssembly(dependency, out var dependencyNode);
       // Trace.TraceInformation($" ({isnew})  -->  {dependencyName} ({dependency.Location}, {dependency.FullName})");
       if(isnew)
