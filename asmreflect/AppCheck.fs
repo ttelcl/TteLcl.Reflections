@@ -65,7 +65,7 @@ let private runCheck o =
   // cp "Initializing assembly loader"
   use mlc = afc.OpenLoadContext()
   let initialAssemblies = mlc.GetAssemblies() |> Seq.toArray
-  // cp $"Initial assembly count: \fb{initialAssemblies.Length}\f0."
+  cp $"Initial assembly count: \fb{initialAssemblies.Length}\f0."
   let loadAssembly (a: string) =
     let anm = Path.GetFileNameWithoutExtension(a)
     cp $"Loading \fg{anm}\f0."
@@ -98,7 +98,9 @@ let private runCheck o =
       else
         cpx $"{eraser}{message}  "
       ()
-    let message = $"\fb{builder.Graph.Nodes.Count}\f0 assemblies loaded"
+    let totalNodeCount = builder.Graph.Nodes.Count
+    let missingNodeCount = builder.Graph.Nodes |> Seq.where (fun n -> n.FileName |> String.IsNullOrEmpty) |> Seq.sumBy (fun _ -> 1)
+    let message = $"\fb{totalNodeCount}\f0 graph nodes: \fg{totalNodeCount - missingNodeCount}\f0 assemblies loaded, and \fr{missingNodeCount}\f0 missing assemblies"
     if verbose |> not then
       cp $"{eraser}{message}"
     else

@@ -13,6 +13,7 @@ using System.Reflection.Metadata;
 using System.Text;
 using System.Threading.Tasks;
 
+using TteLcl.Reflections.ConfigurationFiles;
 using TteLcl.Reflections.Graph;
 
 namespace TteLcl.Reflections;
@@ -613,7 +614,29 @@ public class AssemblyFileCollection
           $"The given file is not an assembly, and the expected related DLL file does not exist: {dll}");
       }
     }
-    throw new NotImplementedException(
-      $"NYI: SeedModern({seedAssembly}, {configFile})");
+    var mcf = new ModernConfigFile(configFile);
+    var runtimeOptions = mcf.Configuration.RuntimeOptions;
+    var count = 0;
+    foreach(var framework in runtimeOptions.Frameworks)
+    {
+      count += AddCoreFramework(framework.Name, framework.Version, bits64: true);
+    }
+    count += AddFile(seedAssembly, [seedTag]) ? 1 : 0;
+    count += AddFolder(mcf.BasePath, false, [seedTag]);
+
+    foreach(var path in runtimeOptions.AdditionalProbingPaths)
+    {
+      // AdditionalProbingPaths are a bit ill defined in Net core. Especially
+      // relative paths are problematic. As best-effort attempt resolve them
+      // relative to BasePath. For more reliable behaviour hope there are absolute
+      // paths only.
+      var fullPath = Path.Combine(mcf.BasePath, path);
+      var nickName = Path.GetFileNameWithoutExtension(fullPath);
+      // additionalProbing paths should have "package" structure, so the
+      // actual DLLs are in a deeper level, and thus recursion needs to be set to "true"
+      count += AddFolder(fullPath, true, [$"{seedTag}/{nickName}"]);
+    }
+
+    return count;
   }
 }

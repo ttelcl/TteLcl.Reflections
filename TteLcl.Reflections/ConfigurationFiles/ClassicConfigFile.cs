@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.XPath;
 
-namespace TteLcl.Reflections;
+namespace TteLcl.Reflections.ConfigurationFiles;
 
 /// <summary>
 /// Model for a classic .NET configuration file (*.config)
@@ -42,7 +42,7 @@ public class ClassicConfigFile
     }
     BasePath = Path.GetDirectoryName(FileName)!;
     var privatePath = nav.Evaluate("string(/configuration/runtime/a:assemblyBinding/a:probing/@privatePath)", nsmgr);
-    if(privatePath is string pp && !String.IsNullOrEmpty(pp))
+    if(privatePath is string pp && !string.IsNullOrEmpty(pp))
     {
       PrivatePath = pp;
       var parts = pp.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -54,7 +54,7 @@ public class ClassicConfigFile
     }
     else
     {
-      PrivatePath = String.Empty;
+      PrivatePath = string.Empty;
       PrivatePathFolders = [];
       PrivatePathEntries = [];
     }

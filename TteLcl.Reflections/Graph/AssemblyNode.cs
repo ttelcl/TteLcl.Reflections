@@ -17,7 +17,10 @@ namespace TteLcl.Reflections.Graph;
 public class AssemblyNode: IGraphNode
 {
   /// <summary>
-  /// Json deserialization constructor
+  /// Create a new <see cref="AssemblyNode"/>. Called during JSON deserialization.
+  /// Other than that this is called from <see cref="AssemblyFileCollection.TryCreateNode(Assembly, out AssemblyNode?)"/>
+  /// in normal situations, which is called from <see cref="AssemblyGraph.AddNode(Assembly, AssemblyFileCollection, out AssemblyNode)"/>.
+  /// 
   /// </summary>
   /// <param name="key">
   /// The full name of the assembly, parsable by <see cref="System.Reflection.AssemblyName"/>
@@ -51,6 +54,7 @@ public class AssemblyNode: IGraphNode
       Tags.Add(module);
     }
     FileName = file;
+    Available = !String.IsNullOrEmpty(FileName);
   }
 
   /// <summary>
@@ -69,7 +73,7 @@ public class AssemblyNode: IGraphNode
   public string Key { get; }
 
   /// <summary>
-  /// The file name, if available
+  /// The file name, if <see cref="Available"/>.
   /// </summary>
   [JsonProperty("file")]
   public string? FileName { get; }
@@ -80,6 +84,13 @@ public class AssemblyNode: IGraphNode
   /// </summary>
   [JsonProperty("module")]
   public string? Module { get; }
+
+  /// <summary>
+  /// If false, this node is referenced, but could not be found:
+  /// <see cref="FileName"/> will be null and there are no edges from this node.
+  /// </summary>
+  [JsonProperty("available")]
+  public bool Available { get; }
 
   /// <summary>
   /// The collection of tag strings associated with this node (mutable)

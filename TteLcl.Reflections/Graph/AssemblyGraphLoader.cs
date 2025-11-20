@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -138,6 +139,11 @@ public class AssemblyGraphLoader
   public int ConnectNode(
     AssemblyNode node, Queue<AssemblyNode> pendingNodes)
   {
+    if(!node.Available)
+    {
+      // skip 'ghost' nodes
+      return 0;
+    }
     var nodeName = node.AssemblyName;
     var assembly = LoadContext.LoadFromAssemblyName(nodeName); // retrieve already loaded assembly
     var dependencyNames = assembly.GetReferencedAssemblies();
@@ -161,7 +167,23 @@ public class AssemblyGraphLoader
           $"Bypassing nameless assembly '{nodeName}'");
         continue;
       }
-      var dependency = LoadContext.LoadFromAssemblyName(dependencyName); // possibly a true load
+      Assembly dependency;
+      try
+      {
+        dependency = LoadContext.LoadFromAssemblyName(dependencyName); // possibly a true load
+      }
+      catch(FileNotFoundException ex)
+      {
+        Trace.TraceInformation(
+          $"Error loading dependency '{dependencyName}' of assembly '{nodeName}' ({assembly.Location}). ({ex.Message})");
+        var missingNode = Graph.AddMissingNode(dependencyName);
+        var ghostEdge = new AssemblyEdge(dependentName, missingNode.FullName, []);
+        if(Graph.AddEdge(ghostEdge))
+        {
+          count++;
+        }
+        continue;
+      }
       var isnew = AddAssembly(dependency, out var dependencyNode);
       // Trace.TraceInformation($" ({isnew})  -->  {dependencyName} ({dependency.Location}, {dependency.FullName})");
       if(isnew)
