@@ -139,6 +139,11 @@ public class AssemblyGraphLoader
   public int ConnectNode(
     AssemblyNode node, Queue<AssemblyNode> pendingNodes)
   {
+    if(!node.Available)
+    {
+      // skip 'ghost' nodes
+      return 0;
+    }
     var nodeName = node.AssemblyName;
     var assembly = LoadContext.LoadFromAssemblyName(nodeName); // retrieve already loaded assembly
     var dependencyNames = assembly.GetReferencedAssemblies();
@@ -169,9 +174,15 @@ public class AssemblyGraphLoader
       }
       catch(FileNotFoundException ex)
       {
-        throw new InvalidOperationException(
-          $"Error loading dependency '{dependencyName}' of assembly '{nodeName}' ({assembly.Location})",
-          ex);
+        Trace.TraceInformation(
+          $"Error loading dependency '{dependencyName}' of assembly '{nodeName}' ({assembly.Location}). ({ex.Message})");
+        var missingNode = Graph.AddMissingNode(dependencyName);
+        var ghostEdge = new AssemblyEdge(dependentName, missingNode.FullName, []);
+        if(Graph.AddEdge(ghostEdge))
+        {
+          count++;
+        }
+        continue;
       }
       var isnew = AddAssembly(dependency, out var dependencyNode);
       // Trace.TraceInformation($" ({isnew})  -->  {dependencyName} ({dependency.Location}, {dependency.FullName})");

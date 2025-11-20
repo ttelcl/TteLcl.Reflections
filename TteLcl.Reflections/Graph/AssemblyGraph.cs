@@ -138,6 +138,32 @@ public class AssemblyGraph
   }
 
   /// <summary>
+  /// Add a missing assembly node to the graph. It can still be referenced
+  /// from other nodes
+  /// </summary>
+  /// <param name="assemblyName"></param>
+  /// <param name="module"></param>
+  /// <param name="tags"></param>
+  /// <returns></returns>
+  public AssemblyNode AddMissingNode(
+    AssemblyName assemblyName,
+    string? module = "MISSING",
+    IEnumerable<string>? tags = null)
+  {
+    var node2 = new AssemblyNode(
+      assemblyName.FullName,
+      null,
+      module,
+      tags);
+    var node = AddNode(node2);
+    if(!Object.ReferenceEquals(node, node2))
+    {
+      node.Tags.UnionWith(node2.Tags);
+    }
+    return node;
+  }
+
+  /// <summary>
   /// Get the full model for an <see cref="AssemblyNode"/>
   /// </summary>
   /// <param name="node"></param>
