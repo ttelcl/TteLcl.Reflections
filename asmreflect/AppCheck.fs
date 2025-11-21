@@ -101,6 +101,52 @@ let private initLoadState o afc (mlc: MetadataLoadContext) =
     PostLoadAssemblies = postLoadAssemblies
   }
 
+let private loadDependencyGraph o loadState =
+  let afc = loadState.Afc
+  let mlc = loadState.Mlc
+  cp "Initializing dependency graph"
+  let builder = new AssemblyGraphLoader(afc, mlc, null)
+  for asm in loadState.InitialAssemblies do
+    let added, node = builder.AddAssembly(asm)
+    ()
+  let pendingQueue = builder.SeedAssemblies(loadState.SeedAssemblies);
+  let eraser = "\r" + new String(' ', Console.WindowWidth - 1) + "\r"
+  // cp $"Pending: \fb{pendingQueue.Count}\f0."
+  while pendingQueue.Count > 0 do
+    let pendingBefore = pendingQueue.Count
+    let node = pendingQueue.Peek()
+    let name = node.ShortName
+    let added = builder.ConnectNext(pendingQueue)
+    let message = $"\fk{pendingBefore,3}\f0 -> \fb{pendingQueue.Count,3}\f0  \fc+{added,3}\f0  \fg{name,-60} \fy{node.Module}\f0."
+    if verbose then
+      cp message
+    else
+      cpx $"{eraser}{message}  "
+    ()
+  let totalNodeCount = builder.Graph.Nodes.Count
+  let missingNodeCount = builder.Graph.Nodes |> Seq.where (fun n -> n.FileName |> String.IsNullOrEmpty) |> Seq.sumBy (fun _ -> 1)
+  let message = $"\fb{totalNodeCount}\f0 graph nodes: \fg{totalNodeCount - missingNodeCount}\f0 assemblies loaded, and \fr{missingNodeCount}\f0 missing assemblies"
+  if verbose |> not then
+    cp $"{eraser}{message}"
+  else
+    cp message
+  let fileName = $"{o.Dependencies}.asm-graph.json"
+  do
+    let graph = builder.Graph
+    use w = fileName |> startFile
+    let json = JsonConvert.SerializeObject(graph, Formatting.Indented)
+    w.WriteLine(json)
+  fileName |> finishFile
+  cp "Converting to generic graph model"
+  let graph = builder.Graph.ExportAsGraph()
+  let fileName = $"{o.Dependencies}.graph.json"
+  do
+    let jgraph = graph.Serialize()
+    use w = fileName |> startFile
+    let json = JsonConvert.SerializeObject(jgraph, Formatting.Indented)
+    w.WriteLine(json)
+  fileName |> finishFile
+
 let private typesTest o loadState =
   cp "\frNot yet implemented: \fg-types\f0."
   ()
@@ -109,55 +155,13 @@ let private runCheck o =
   let afc = o |> buildFileCollection
   if o.Check then afc |> countAssembliesByModule
   if o.Check then afc |> checkAmbiguousRegistrations
-  // cp "Initializing assembly loader"
   use mlc = afc.OpenLoadContext()
   let loadState = initLoadState o afc mlc
   if o.TypeAssemblies |> List.isEmpty |> not then
     typesTest o loadState
   if o.Dependencies |> String.IsNullOrEmpty |> not then
-    cp "Initializing dependency graph"
-    let builder = new AssemblyGraphLoader(afc, mlc, null)
-    for asm in loadState.InitialAssemblies do
-      let added, node = builder.AddAssembly(asm)
-      ()
-    let pendingQueue = builder.SeedAssemblies(loadState.SeedAssemblies);
-    let eraser = "\r" + new String(' ', Console.WindowWidth - 1) + "\r"
-    // cp $"Pending: \fb{pendingQueue.Count}\f0."
-    while pendingQueue.Count > 0 do
-      let pendingBefore = pendingQueue.Count
-      let node = pendingQueue.Peek()
-      let name = node.ShortName
-      let added = builder.ConnectNext(pendingQueue)
-      let message = $"\fk{pendingBefore,3}\f0 -> \fb{pendingQueue.Count,3}\f0  \fc+{added,3}\f0  \fg{name,-60} \fy{node.Module}\f0."
-      if verbose then
-        cp message
-      else
-        cpx $"{eraser}{message}  "
-      ()
-    let totalNodeCount = builder.Graph.Nodes.Count
-    let missingNodeCount = builder.Graph.Nodes |> Seq.where (fun n -> n.FileName |> String.IsNullOrEmpty) |> Seq.sumBy (fun _ -> 1)
-    let message = $"\fb{totalNodeCount}\f0 graph nodes: \fg{totalNodeCount - missingNodeCount}\f0 assemblies loaded, and \fr{missingNodeCount}\f0 missing assemblies"
-    if verbose |> not then
-      cp $"{eraser}{message}"
-    else
-      cp message
-    let fileName = $"{o.Dependencies}.asm-graph.json"
-    do
-      let graph = builder.Graph
-      use w = fileName |> startFile
-      let json = JsonConvert.SerializeObject(graph, Formatting.Indented)
-      w.WriteLine(json)
-    fileName |> finishFile
-    cp "Converting to generic graph model"
-    let graph = builder.Graph.ExportAsGraph()
-    let fileName = $"{o.Dependencies}.graph.json"
-    do
-      let jgraph = graph.Serialize()
-      use w = fileName |> startFile
-      let json = JsonConvert.SerializeObject(jgraph, Formatting.Indented)
-      w.WriteLine(json)
-    fileName |> finishFile
-    ()
+    // Beware: this mutates the content of the objects in loadState!
+    loadDependencyGraph o loadState
   0
 
 let run args =
