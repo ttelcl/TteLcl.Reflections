@@ -10,6 +10,7 @@ let usage focus =
   cp "\fg-a \fcfile\f0          An assembly file to analyze (\fc*.exe\f0, \fc*.dll\f0)"
   cp "\fg-check\f0\fx           Check and report in greater detail"
   cp "\fg-deps \fctag\f0        Analyze dependencies, use \fctag\f0 to construct output file names"
+  cp "\fg-types \fcassembly\f0  Export type information the specified assembly"
   cp "\fg-v \f0        \fx      Verbose mode"
 
 
