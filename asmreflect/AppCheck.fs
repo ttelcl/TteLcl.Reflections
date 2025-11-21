@@ -8,6 +8,7 @@ open Newtonsoft.Json
 
 open TteLcl.Reflections
 open TteLcl.Reflections.Graph
+open TteLcl.Reflections.TypesModel
 
 open ColorPrint
 open CommonTools
@@ -147,9 +148,51 @@ let private loadDependencyGraph o loadState =
     w.WriteLine(json)
   fileName |> finishFile
 
-let private typesTest o loadState =
-  cp "\frNot yet implemented: \fg-types\f0."
-  ()
+let typeColor (t:Type) =
+  if t.IsNestedPublic then
+    "\fw"
+  elif t.IsPublic then
+    if t.IsInterface then
+      "\fo"
+    elif t.IsAbstract then
+      if t.IsValueType then
+        "\fC"
+      else
+        "\fy"
+    elif t.IsValueType then
+      "\fb"
+    elif t.IsClass then
+      "\fg"
+    else
+      "\fc"
+  else
+    "\fk"
+
+let private scanTypes o loadState =
+  let afc = loadState.Afc
+  let mlc = loadState.Mlc
+  for tan in o.TypeAssemblies do
+    cp $"Loading \fy{tan}\f0."
+    let a = mlc.LoadFromAssemblyName(tan)
+    cp $"    Loaded \fg{a.Location}\f0."
+    let types = a.GetTypes()
+    for t in types do
+      let color = t |> typeColor
+      cp $"  {color}{t.FullName}\f0 ({t.Name})."
+      let baseType = t.BaseType
+      if baseType <> null then
+        let baseColor = baseType |> typeColor
+        let baseName = if baseType.FullName |> String.IsNullOrEmpty then baseType.Name+" \fr!!!" else baseType.FullName
+        cp $"    : {baseColor}{baseName}\f0 ({baseType.Assembly.FullName})"
+    let typeList = AssemblyTypeList.FromAssembly(a)
+    let fileName = $"{a.GetName().Name}.types.json"
+    cp $"Saving \fg{fileName}\f0."
+    let json = JsonConvert.SerializeObject(typeList, Formatting.Indented)
+    File.WriteAllText(fileName+".tmp", json)
+    fileName |> finishFile
+  if verbose then
+    cp "Assemblies after type loading:"
+    mlc.GetAssemblies() |> assemblyDiagnostics afc
 
 let private runCheck o =
   let afc = o |> buildFileCollection
@@ -158,7 +201,8 @@ let private runCheck o =
   use mlc = afc.OpenLoadContext()
   let loadState = initLoadState o afc mlc
   if o.TypeAssemblies |> List.isEmpty |> not then
-    typesTest o loadState
+    // Beware: this mutates the content of the objects in loadState!
+    scanTypes o loadState
   if o.Dependencies |> String.IsNullOrEmpty |> not then
     // Beware: this mutates the content of the objects in loadState!
     loadDependencyGraph o loadState
