@@ -31,7 +31,7 @@ public class AssemblyTypeList
   {
     _types = new List<TypeModel>(
       from t in types
-      orderby t.VisibilityOrder, t.Kind, (t.Generic ?? ""), (t.FullName ?? t.Name)
+      orderby t.VisibilityOrder, t.Kind, (t.Generic ?? ""), (t.Label ?? t.Name)
       select t);
     Types = _types;
     AssemblyName = assembly;

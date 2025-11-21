@@ -31,19 +31,23 @@ public class TypeModel
   public TypeModel(Type type)
   {
     Name = type.Name;
-    Name2 = type.ToString();
-    FullName = type.FullName;
-    AssemblyQualifiedName = type.AssemblyQualifiedName;
+    Label = type.ToString();
+    AssemblyName = type.Assembly.FullName;
+    //FullName = type.FullName;
+    //AssemblyQualifiedName = type.AssemblyQualifiedName;
     Visibility = (TypeVisibility)(int)(type.Attributes & TypeAttributes.VisibilityMask);
     IsAbstract = type.IsAbstract;
     IsSealed = type.IsSealed;
     Kind = Categorize(type);
     Generic = CategorizeGeneric(type);
     var declaringType = type.DeclaringType;
-    DeclaringType = declaringType?.AssemblyQualifiedName ?? declaringType?.FullName ?? declaringType?.Name;
+    // DeclaringType = declaringType?.AssemblyQualifiedName ?? declaringType?.FullName ?? declaringType?.Name;
+    DeclaringType = declaringType?.ToString();
+    DeclaringAssembly = declaringType?.Assembly.FullName;
     var baseType = type.BaseType;
-    BaseType = baseType?.AssemblyQualifiedName ?? baseType?.FullName ?? baseType?.Name;
-    BaseType2 = baseType?.ToString();
+    // BaseType0 = baseType?.AssemblyQualifiedName ?? baseType?.FullName ?? baseType?.Name;
+    BaseType = baseType?.ToString();
+    BaseAssembly = baseType?.Assembly.FullName;
     var interfaces = type.GetInterfaces();
     Interfaces = interfaces.Select(i => i.ToString()).ToList();
   }
@@ -76,42 +80,59 @@ public class TypeModel
   /// <summary>
   /// The short name
   /// </summary>
-  [JsonProperty("name2")]
-  public string Name2 { get; }
+  [JsonProperty("label")]
+  public string Label { get; }
 
   /// <summary>
-  /// The full name (null for generic type parameters)
+  /// The name of the assembly
   /// </summary>
-  [JsonProperty("fullname")]
-  public string? FullName { get; }
+  [JsonProperty("assembly")]
+  public string? AssemblyName { get; }
 
-  /// <summary>
-  /// The assembly qualified name (null for generic type parameters)
-  /// </summary>
-  [JsonProperty("qualifiedname")]
-  public string? AssemblyQualifiedName { get; }
+  ///// <summary>
+  ///// The full name (null for generic type parameters)
+  ///// </summary>
+  //[JsonProperty("fullname")]
+  //public string? FullName { get; }
+
+  ///// <summary>
+  ///// The assembly qualified name (null for generic type parameters)
+  ///// </summary>
+  //[JsonProperty("qualifiedname")]
+  //public string? AssemblyQualifiedName { get; }
 
   /// <summary>
   /// Tell the serializer not to serialize <see cref="Generic"/> if it is null
   /// </summary>
   public bool ShouldSerializeGeneric() => Generic != null;
 
+  ///// <summary>
+  ///// The <see cref="AssemblyQualifiedName"/>, <see cref="FullName"/> or <see cref="Name"/>
+  ///// of the base type, whichever is not null. Will be null for the System.Object type.
+  ///// </summary>
+  //[JsonProperty("basetype0")]
+  //public string? BaseType0 { get; }
+
   /// <summary>
-  /// The <see cref="AssemblyQualifiedName"/>, <see cref="FullName"/> or <see cref="Name"/>
-  /// of the base type, whichever is not null. Will be null for the System.Object type.
+  /// The label of the base type (null for System.Object)
   /// </summary>
   [JsonProperty("basetype")]
   public string? BaseType { get; }
 
   /// <summary>
-  /// The <see cref="AssemblyQualifiedName"/>, <see cref="FullName"/> or <see cref="Name"/>
-  /// of the base type, whichever is not null. Will be null for the System.Object type.
+  /// The assembly of the base type (null for System.Object)
   /// </summary>
-  [JsonProperty("basetype2")]
-  public string? BaseType2 { get; }
+  [JsonProperty("baseassembly")]
+  public string? BaseAssembly { get; }
 
   /// <summary>
-  /// The <see cref="AssemblyQualifiedName"/>, <see cref="FullName"/> or <see cref="Name"/>
+  /// Tell the serializer not to serialize <see cref="BaseAssembly"/> if it is null
+  /// or if it is the same as <see cref="AssemblyName"/>
+  /// </summary>
+  public bool ShouldSerializeBaseAssembly() => BaseAssembly != null && BaseAssembly != AssemblyName;
+
+  /// <summary>
+  /// The label
   /// of the declaring type, whichever is not null. Will be null if there is no declaring type.
   /// </summary>
   [JsonProperty("declaringtype")]
@@ -121,6 +142,18 @@ public class TypeModel
   /// Tell the serializer not to serialize <see cref="DeclaringType"/> if it is null
   /// </summary>
   public bool ShouldSerializeDeclaringType() => DeclaringType != null;
+
+  /// <summary>
+  /// The assembly of the declaring type, if defined
+  /// </summary>
+  [JsonProperty("declaringassembly")]
+  public string? DeclaringAssembly { get; }
+
+  /// <summary>
+  /// Tell the serializer not to serialize <see cref="DeclaringAssembly"/> if it is null
+  /// or if it is the same as <see cref="AssemblyName"/>
+  /// </summary>
+  public bool ShouldSerializeDeclaringAssembly() => DeclaringAssembly != null && DeclaringAssembly != AssemblyName;
 
   /// <summary>
   /// True if abstract
