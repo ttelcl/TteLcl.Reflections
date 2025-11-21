@@ -31,6 +31,7 @@ public class TypeModel
   public TypeModel(Type type)
   {
     Name = type.Name;
+    Name2 = type.ToString();
     FullName = type.FullName;
     AssemblyQualifiedName = type.AssemblyQualifiedName;
     Visibility = (TypeVisibility)(int)(type.Attributes & TypeAttributes.VisibilityMask);
@@ -42,6 +43,9 @@ public class TypeModel
     DeclaringType = declaringType?.AssemblyQualifiedName ?? declaringType?.FullName ?? declaringType?.Name;
     var baseType = type.BaseType;
     BaseType = baseType?.AssemblyQualifiedName ?? baseType?.FullName ?? baseType?.Name;
+    BaseType2 = baseType?.ToString();
+    var interfaces = type.GetInterfaces();
+    Interfaces = interfaces.Select(i => i.ToString()).ToList();
   }
 
   /// <summary>
@@ -70,6 +74,12 @@ public class TypeModel
   public string Name { get; }
 
   /// <summary>
+  /// The short name
+  /// </summary>
+  [JsonProperty("name2")]
+  public string Name2 { get; }
+
+  /// <summary>
   /// The full name (null for generic type parameters)
   /// </summary>
   [JsonProperty("fullname")]
@@ -95,6 +105,13 @@ public class TypeModel
 
   /// <summary>
   /// The <see cref="AssemblyQualifiedName"/>, <see cref="FullName"/> or <see cref="Name"/>
+  /// of the base type, whichever is not null. Will be null for the System.Object type.
+  /// </summary>
+  [JsonProperty("basetype2")]
+  public string? BaseType2 { get; }
+
+  /// <summary>
+  /// The <see cref="AssemblyQualifiedName"/>, <see cref="FullName"/> or <see cref="Name"/>
   /// of the declaring type, whichever is not null. Will be null if there is no declaring type.
   /// </summary>
   [JsonProperty("declaringtype")]
@@ -116,6 +133,17 @@ public class TypeModel
   /// </summary>
   [JsonProperty("sealed")]
   public bool IsSealed { get; }
+
+  /// <summary>
+  /// Interfaces implemented or inherited
+  /// </summary>
+  [JsonProperty("interfaces")]
+  public IReadOnlyList<string> Interfaces { get; }
+
+  /// <summary>
+  /// Tell the serializer not to serialize <see cref="DeclaringType"/> if it is null
+  /// </summary>
+  public bool ShouldSerializeInterfaces() => Interfaces.Count > 0;
 
   /// <summary>
   /// Categorize the type
