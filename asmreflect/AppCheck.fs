@@ -148,6 +148,18 @@ let private loadDependencyGraph o loadState =
     let json = JsonConvert.SerializeObject(jgraph, Formatting.Indented)
     w.WriteLine(json)
   fileName |> finishFile
+  let usedAssemblies =
+    mlc.GetAssemblies()
+    |> Seq.filter (fun asm -> (asm.Location |> String.IsNullOrEmpty |> not) && (asm.Location |> File.Exists)) // skip ghosts
+    |> Seq.toList
+  cp $"\fb{usedAssemblies.Length}\f0 of \fc{afc.AssembliesByName.Count}\f0 candidates in use"
+  let afcUsage = afc.GetCandidateUse(usedAssemblies)
+  let afcUsageFileName = $"{o.Dependencies}.usage.json"
+  do
+    use w = afcUsageFileName |> startFile
+    let json = JsonConvert.SerializeObject(afcUsage, Formatting.Indented)
+    w.WriteLine(json)
+  afcUsageFileName |> finishFile
 
 let typeColor (t:Type) =
   if t.IsNestedPublic then

@@ -362,6 +362,51 @@ public class AssemblyFileCollection
   }
 
   /// <summary>
+  /// Build a mapping from all registered assembly tagnames to the primary assembly tag
+  /// they are actually used in (mapping unused files to null). This allows checking which
+  /// candidate assembly files were actually used and which modules they were used for
+  /// (since the primary tag is the module).
+  /// </summary>
+  /// <param name="usedAssemblies"></param>
+  /// <returns></returns>
+  /// <exception cref="InvalidOperationException"></exception>
+  public IReadOnlyDictionary<string, string?> GetCandidateUse(
+    IEnumerable<Assembly> usedAssemblies)
+  {
+    var usage = new Dictionary<string, string?>();
+    // Start by tagging each known name as 'not in use (by setting it to null)
+    foreach(var kvp in 
+      from kvp in _assemblyFiles orderby kvp.Key select kvp)
+    {
+      usage[kvp.Key] = null;
+    }
+    foreach(var asm in usedAssemblies)
+    {
+      if(TryFindByAssembly(asm, out var afi))
+      {
+        var key = Path.GetFileNameWithoutExtension(afi.FileName);
+        if(!usage.ContainsKey(key))
+        {
+          // sanity check
+          throw new InvalidOperationException(
+            $"Internal error. Expecting key '{key}' to exist in assembly files map");
+        }
+        if(AssemblyTags.TryGetValue(afi, out var tags))
+        {
+          usage[key] = tags.Single(); // deliberate crash if it is not exactly one tag
+        }
+        else
+        {
+          // sanity check
+          throw new InvalidOperationException(
+            $"Internal error. Expecting key '{key}' to exist in assembly tags map");
+        }
+      }
+    }
+    return usage;
+  }
+
+  /// <summary>
   /// Given an <see cref="Assembly"/>, try to create a new <see cref="AssemblyNode"/> instance.
   /// This will fail (and return false) if the assembly is not known in this collection.
   /// </summary>
