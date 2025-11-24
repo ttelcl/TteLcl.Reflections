@@ -101,6 +101,8 @@ let private emitNodesFile o (graph:Graph) =
     let builder = new CsvWriteRowBuilder()
     let nameCell = builder.AddCell("node")
     let kindCell = builder.AddCell("kind")
+    let targetCountCell  = builder.AddCell("#tgt")
+    let sourceCountCell  = builder.AddCell("#src")
     let propCells =
       nodePropertyNames
       |> List.map (fun propName -> builder.AddCell(propName))
@@ -124,6 +126,8 @@ let private emitNodesFile o (graph:Graph) =
     for node in graph.Nodes.Values do
       node.Key |> nameCell.Set
       node.Kind.ToString() |> kindCell.Set
+      node.Targets.Count.ToString() |> targetCountCell.Set
+      node.Sources.Count.ToString() |> sourceCountCell.Set
       let metadata = node.Metadata
       for propCell in propCells do
         propCell.Name |> metadata.GetPropertyOrDefault |> propCell.Set
