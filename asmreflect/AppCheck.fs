@@ -18,6 +18,7 @@ type private Options = {
   Check: bool
   Dependencies: string
   TypeAssemblies: string list
+  TypeOutFile: string
 }
 
 type private LoadState = {
@@ -171,28 +172,44 @@ let typeColor (t:Type) =
 let private scanTypes o loadState =
   let afc = loadState.Afc
   let mlc = loadState.Mlc
-  for tan in o.TypeAssemblies do
-    cp $"Loading \fy{tan}\f0."
+  let typeAssemblies = o.TypeAssemblies
+  let outName =
+    if o.TypeOutFile.EndsWith(".types.json", StringComparison.OrdinalIgnoreCase) |> not then
+      o.TypeOutFile + ".types.json"
+    else
+      o.TypeOutFile
+  let typeMap = AssemblyTypeMap.CreateNew()
+  for tan in typeAssemblies do
+    if verbose then
+      cp $"Loading \fy{tan}\f0."
     let a = mlc.LoadFromAssemblyName(tan)
-    cp $"    Loaded \fg{a.Location}\f0."
+    if verbose then
+      cp $"    Loaded \fg{a.Location}\f0."
     let types = a.GetTypes()
     for t in types do
-      let color = t |> typeColor
-      cp $"  {color}{t.FullName}\f0 ({t.Name})."
+      if verbose then
+        let color = t |> typeColor
+        cp $"  {color}{t.FullName}\f0 ({t.Name})."
       let baseType = t.BaseType
-      if baseType <> null then
+      if verbose && baseType <> null then
         let baseColor = baseType |> typeColor
         let baseName = if baseType.FullName |> String.IsNullOrEmpty then baseType.Name+" \fr!!!" else baseType.FullName
         cp $"    : {baseColor}{baseName}\f0 ({baseType.Assembly.FullName})"
-    let typeList = AssemblyTypeList.FromAssembly(a)
-    let fileName = $"{a.GetName().Name}.types.json"
-    cp $"Saving \fg{fileName}\f0."
-    let json = JsonConvert.SerializeObject(typeList, Formatting.Indented)
-    File.WriteAllText(fileName+".tmp", json)
-    fileName |> finishFile
-  if verbose then
-    cp "Assemblies after type loading:"
-    mlc.GetAssemblies() |> assemblyDiagnostics afc
+    //let typeList = AssemblyTypeList.FromAssembly(a)
+    typeMap.AddAssembly(a)
+    cp $"Added \fb{types.Length}\f0 types from \fy{a.GetName()}\f0."
+    //let fileName = $"{a.GetName().Name}.types.json"
+    //cp $"Saving \fg{fileName}\f0."
+    //let json = JsonConvert.SerializeObject(typeList, Formatting.Indented)
+    //File.WriteAllText(fileName+".tmp", json)
+    //fileName |> finishFile
+  let typeCount = typeMap.TypesByAssembly.Values |> Seq.sumBy (fun list -> list.Count)
+  cp $"Saving \fb{typeCount}\f0 types to \fg{outName}\f0."
+  typeMap.SaveInnerToJson(outName + ".tmp", true)
+  outName |> finishFile
+  //if verbose then
+  //  cp "Assemblies after type loading:"
+  //  mlc.GetAssemblies() |> assemblyDiagnostics afc
 
 let private runCheck o =
   let afc = o |> buildFileCollection
@@ -231,9 +248,14 @@ let run args =
       rest |> parseMore {o with Dependencies = filetag}
     | "-types" :: ta :: rest ->
       rest |> parseMore {o with TypeAssemblies = ta :: o.TypeAssemblies}
+    | "-typo" :: file :: rest ->
+      rest |> parseMore {o with TypeOutFile = file}
     | [] ->
       if o.Assemblies |> List.isEmpty then
         cp "\foNo assembly arguments (\fg-a\fo) given\f0."
+        None
+      elif (o.TypeAssemblies |> List.isEmpty |> not) && (o.TypeOutFile |> String.IsNullOrEmpty) then
+        cp "\frMissing \fg-typo\fr argument. \f0(\forequired when any \fy-types\fo is present\f0)"
         None
       else
         {o with Assemblies = o.Assemblies |> List.rev; TypeAssemblies = o.TypeAssemblies |> List.rev} |> Some
@@ -245,6 +267,7 @@ let run args =
     Check = false
     Dependencies = null
     TypeAssemblies = []
+    TypeOutFile = null
   }
   match oo with
   | Some(o) ->

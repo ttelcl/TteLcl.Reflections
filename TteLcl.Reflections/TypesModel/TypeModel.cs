@@ -53,6 +53,12 @@ public class TypeModel
   }
 
   /// <summary>
+  /// The short name
+  /// </summary>
+  [JsonProperty("label")]
+  public string Label { get; }
+
+  /// <summary>
   /// The visibility bits of the type attributes
   /// </summary>
   [JsonProperty("visibility")]
@@ -76,12 +82,6 @@ public class TypeModel
   /// </summary>
   [JsonProperty("name")]
   public string Name { get; }
-
-  /// <summary>
-  /// The short name
-  /// </summary>
-  [JsonProperty("label")]
-  public string Label { get; }
 
   /// <summary>
   /// The name of the assembly
