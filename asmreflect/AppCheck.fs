@@ -153,8 +153,8 @@ let private loadDependencyGraph o loadState =
     |> Seq.filter (fun asm -> (asm.Location |> String.IsNullOrEmpty |> not) && (asm.Location |> File.Exists)) // skip ghosts
     |> Seq.toList
   cp $"\fb{usedAssemblies.Length}\f0 of \fc{afc.AssembliesByName.Count}\f0 candidates in use"
-  let afcUsage = afc.GetCandidateUse(usedAssemblies)
-  let afcUsageFileName = $"{o.Dependencies}.usage.json"
+  let afcUsage = afc.ReportRegistrationUse(usedAssemblies)
+  let afcUsageFileName = $"{o.Dependencies}.registration-usage.json"
   do
     use w = afcUsageFileName |> startFile
     let json = JsonConvert.SerializeObject(afcUsage, Formatting.Indented)

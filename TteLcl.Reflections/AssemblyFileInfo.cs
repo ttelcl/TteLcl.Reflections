@@ -44,7 +44,7 @@ public sealed class AssemblyFileInfo: IEquatable<AssemblyFileInfo>
   /// The assumed short name of the assembly, based on the short name without extension
   /// of <see cref="FileName"/>. This is what identifies items in some APIs in
   /// <see cref="AssemblyFileCollection"/>, such as <see cref="AssemblyFileCollection.AssembliesByName"/>
-  /// and <see cref="AssemblyFileCollection.AssemblyKeys"/>
+  /// and <see cref="AssemblyFileCollection.AssemblyKeys"/>.
   /// </summary>
   public string AssumedAssemblyKey => Path.GetFileNameWithoutExtension(FileName);
 

@@ -66,16 +66,17 @@ public class AssemblyFileCollection
   /// Enumerate the list of distinct "assembly tags" in this collection. An assembly tag
   /// is the potential name of an assembly as derived from an assembly file. It is possible
   /// that this is not a valid assembly name at all. Additionally, casing may be incorrect.
+  /// (In <see cref="AssemblyFileInfo"/> these are exposed as <see cref="AssemblyFileInfo.AssumedAssemblyKey"/>)
   /// </summary>
   public IReadOnlyCollection<string> AssemblyKeys => _assemblyFiles.Keys;
 
   /// <summary>
-  /// A view on the assemblies in this collection, grouped by assumed assembly name
+  /// A view on the assemblies in this collection, grouped by <see cref="AssemblyFileInfo.AssumedAssemblyKey"/>
   /// </summary>
   public IReadOnlyDictionary<string, IReadOnlySet<AssemblyFileInfo>> AssembliesByName => _assemblyFilesView;
 
   /// <summary>
-  /// Mapping from <see cref="AssemblyFileInfo"/> to the set of tag strings.
+  /// Mapping from <see cref="AssemblyFileInfo"/> (full name) to the set of tag strings.
   /// </summary>
   public IReadOnlyDictionary<AssemblyFileInfo, IReadOnlySet<string>> AssemblyTags => _assemblyTagsView;
 
@@ -135,7 +136,7 @@ public class AssemblyFileCollection
   }
 
   /// <summary>
-  /// Return the assemblies that have the given tag
+  /// Return the assemblies that have the given string as one of their tags
   /// </summary>
   public IReadOnlySet<AssemblyFileInfo> GetAssembliesByTag(string tag)
   {
@@ -152,7 +153,7 @@ public class AssemblyFileCollection
   /// '<paramref name="assemblyName"/>' (case insensitively)
   /// </summary>
   /// <param name="assemblyName">
-  /// The name to search for
+  /// The name to search for (to match <see cref="AssemblyFileInfo.AssumedAssemblyKey"/>)
   /// </param>
   /// <param name="assemblyFileInfos">
   /// The set of <see cref="AssemblyFileInfo"/>s found (or null if not found)
@@ -362,48 +363,63 @@ public class AssemblyFileCollection
   }
 
   /// <summary>
-  /// Build a mapping from all registered assembly tagnames to the primary assembly tag
-  /// they are actually used in (mapping unused files to null). This allows checking which
-  /// candidate assembly files were actually used and which modules they were used for
-  /// (since the primary tag is the module).
+  /// Return a report on registered potential assembly file registrations and their actual use
   /// </summary>
   /// <param name="usedAssemblies"></param>
-  /// <returns></returns>
+  /// <returns>
+  /// A mapping of short assembly tags to <see cref="AssemblyFileUsage"/> records
+  /// </returns>
   /// <exception cref="InvalidOperationException"></exception>
-  public IReadOnlyDictionary<string, string?> GetCandidateUse(
+  public IReadOnlyDictionary<string, IReadOnlyList<AssemblyFileUsage>> ReportRegistrationUse(
     IEnumerable<Assembly> usedAssemblies)
   {
-    var usage = new Dictionary<string, string?>();
-    // Start by tagging each known name as 'not in use (by setting it to null)
-    foreach(var kvp in 
-      from kvp in _assemblyFiles orderby kvp.Key select kvp)
+    var usedRegistrations = new Dictionary<AssemblyFileInfo, AssemblyName>();
+    foreach(var usedAssembly in usedAssemblies)
     {
-      usage[kvp.Key] = null;
-    }
-    foreach(var asm in usedAssemblies)
-    {
-      if(TryFindByAssembly(asm, out var afi))
+      if(TryFindByAssembly(usedAssembly, out var usedInfo))
       {
-        var key = Path.GetFileNameWithoutExtension(afi.FileName);
-        if(!usage.ContainsKey(key))
-        {
-          // sanity check
-          throw new InvalidOperationException(
-            $"Internal error. Expecting key '{key}' to exist in assembly files map");
-        }
-        if(AssemblyTags.TryGetValue(afi, out var tags))
-        {
-          usage[key] = tags.Single(); // deliberate crash if it is not exactly one tag
-        }
-        else
-        {
-          // sanity check
-          throw new InvalidOperationException(
-            $"Internal error. Expecting key '{key}' to exist in assembly tags map");
-        }
+        usedRegistrations.Add(usedInfo, usedAssembly.GetName());
+      }
+      else
+      {
+        throw new InvalidOperationException(
+          $"Unregistered assembly encountered: {usedAssembly.FullName ?? "???"}");
       }
     }
-    return usage;
+    var result = new Dictionary<string, IReadOnlyList<AssemblyFileUsage>>(
+      StringComparer.OrdinalIgnoreCase);
+    foreach(var kvp in _assemblyFiles)
+    {
+      var inner = new List<AssemblyFileUsage>();
+      result.Add(kvp.Key, inner);
+      foreach(var registration in kvp.Value)
+      {
+        var used = usedRegistrations.TryGetValue(registration, out var assemblyName);
+        if(!_assemblyTags.TryGetValue(registration, out var tags))
+        {
+          throw new InvalidOperationException(
+            $"No tags defined for assembly registration '{registration.FileName}'");
+        }
+        if(tags.Count != 1)
+        {
+          throw new InvalidOperationException(
+            $"Expecting exactly 1 tag but found {tags.Count} for '{registration.FileName}'");
+        }
+        var module = tags.First();
+        var version =
+          used
+          ? assemblyName!.Version ?? new Version()
+          : null;
+        var usage = new AssemblyFileUsage(
+          used,
+          kvp.Key,
+          module,
+          registration.FileName,
+          version?.ToString());
+        inner.Add(usage);
+      }
+    }
+    return result;
   }
 
   /// <summary>
