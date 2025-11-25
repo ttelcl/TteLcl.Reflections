@@ -6,6 +6,9 @@ open System.Reflection
 
 open Newtonsoft.Json
 
+open TteLcl.Csv
+open TteLcl.Csv.Core
+
 open TteLcl.Reflections
 open TteLcl.Reflections.Graph
 open TteLcl.Reflections.TypesModel
@@ -117,7 +120,8 @@ let private assemblyUsage o loadState =
   let afcUsage =
     afc.ReportRegistrationUse(usedAssemblies)
     |> Seq.toArray
-    |> Array.sortBy (fun afu -> (afu.Module, afu.IsUsed, afu.AssemblyTag.ToLowerInvariant(), afu.AssemblyVersion, afu.FileName))
+    |> Array.sortBy (fun afu -> (afu.Module, afu.IsUsed |> not, afu.AssemblyTag.ToLowerInvariant(), afu.AssemblyVersion, afu.FileName))
+  let afcUsageFileName = $"{o.Dependencies}.registration-usage.json"
   do
     let afuByModuleAndUse =
       afcUsage
@@ -130,12 +134,30 @@ let private assemblyUsage o loadState =
       afuMap.Add(m, nest)
       for (u, ug) in mg do
         nest.Add(u, ug)
-    let afcUsageFileName = $"{o.Dependencies}.registration-usage.json"
-    do
-      use w = afcUsageFileName |> startFile
-      let json = JsonConvert.SerializeObject(afuMap, Formatting.Indented)
-      w.WriteLine(json)
-    afcUsageFileName |> finishFile
+    use w = afcUsageFileName |> startFile
+    let json = JsonConvert.SerializeObject(afuMap, Formatting.Indented)
+    w.WriteLine(json)
+  afcUsageFileName |> finishFile
+  let afuFileName = $"{o.Dependencies}.registration-usage.csv"
+  do
+    let builder = new CsvWriteRowBuilder()
+    let moduleCell = builder.AddCell("module")
+    let usedCell = builder.AddCell("used")
+    let assemblyCell = builder.AddCell("assembly")
+    let versionCell = builder.AddCell("version")
+    let fileCell = builder.AddCell("file")
+    let rowBuffer = builder.Build()
+    cp $"Saving \fg{afuFileName}\f0."
+    use cw = new CsvRawWriter(afuFileName+".tmp")
+    rowBuffer |> cw.WriteHeader
+    for afu in afcUsage do
+      afu.Module |> moduleCell.Set
+      (if afu.IsUsed then "used" else "unused") |> usedCell.Set
+      afu.AssemblyTag |> assemblyCell.Set
+      (if afu.AssemblyVersion = null then "" else afu.AssemblyVersion) |> versionCell.Set
+      afu.FileName |> fileCell.Set
+      rowBuffer |> cw.WriteRow
+  afuFileName |> finishFile
 
 let private loadDependencyGraph o loadState =
   let afc = loadState.Afc
