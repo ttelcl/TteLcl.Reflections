@@ -13,6 +13,8 @@ open TteLcl.Reflections.TypesModel
 open ColorPrint
 open CommonTools
 
+type Dictionary<'k,'v> = System.Collections.Generic.Dictionary<'k,'v>
+
 type private Options = {
   Assemblies: string list
   Check: bool
@@ -153,11 +155,25 @@ let private loadDependencyGraph o loadState =
     |> Seq.filter (fun asm -> (asm.Location |> String.IsNullOrEmpty |> not) && (asm.Location |> File.Exists)) // skip ghosts
     |> Seq.toList
   cp $"\fb{usedAssemblies.Length}\f0 of \fc{afc.AssembliesByName.Count}\f0 candidates in use"
-  let afcUsage = afc.ReportRegistrationUse(usedAssemblies)
+  let afcUsage =
+    afc.ReportRegistrationUse(usedAssemblies)
+    |> Seq.toArray
+    |> Array.sortBy (fun afu -> (afu.Module, afu.IsUsed, afu.AssemblyTag.ToLowerInvariant(), afu.AssemblyVersion, afu.FileName))
+  let afuByModuleAndUse =
+    afcUsage
+    |> Array.groupBy (fun afu -> afu.Module)
+    |> Array.map (fun (m,afus) -> (m, afus |> Array.groupBy (fun afu -> if afu.IsUsed then "used" else "unused")))
+  // Convert afuByModuleAndUse to something serializable
+  let afuMap = new Dictionary<string,Dictionary<string,AssemblyFileUsage array>>()
+  for (m, mg) in afuByModuleAndUse do
+    let nest = new Dictionary<string, AssemblyFileUsage array>()
+    afuMap.Add(m, nest)
+    for (u, ug) in mg do
+      nest.Add(u, ug)
   let afcUsageFileName = $"{o.Dependencies}.registration-usage.json"
   do
     use w = afcUsageFileName |> startFile
-    let json = JsonConvert.SerializeObject(afcUsage, Formatting.Indented)
+    let json = JsonConvert.SerializeObject(afuMap, Formatting.Indented)
     w.WriteLine(json)
   afcUsageFileName |> finishFile
 

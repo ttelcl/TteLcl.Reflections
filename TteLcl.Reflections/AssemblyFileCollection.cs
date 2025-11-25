@@ -370,7 +370,7 @@ public class AssemblyFileCollection
   /// A mapping of short assembly tags to <see cref="AssemblyFileUsage"/> records
   /// </returns>
   /// <exception cref="InvalidOperationException"></exception>
-  public IReadOnlyDictionary<string, IReadOnlyList<AssemblyFileUsage>> ReportRegistrationUse(
+  public IReadOnlyList<AssemblyFileUsage> ReportRegistrationUse(
     IEnumerable<Assembly> usedAssemblies)
   {
     var usedRegistrations = new Dictionary<AssemblyFileInfo, AssemblyName>();
@@ -386,12 +386,9 @@ public class AssemblyFileCollection
           $"Unregistered assembly encountered: {usedAssembly.FullName ?? "???"}");
       }
     }
-    var result = new Dictionary<string, IReadOnlyList<AssemblyFileUsage>>(
-      StringComparer.OrdinalIgnoreCase);
+    var result = new List<AssemblyFileUsage>();
     foreach(var kvp in _assemblyFiles)
     {
-      var inner = new List<AssemblyFileUsage>();
-      result.Add(kvp.Key, inner);
       foreach(var registration in kvp.Value)
       {
         var used = usedRegistrations.TryGetValue(registration, out var assemblyName);
@@ -416,7 +413,7 @@ public class AssemblyFileCollection
           module,
           registration.FileName,
           version?.ToString());
-        inner.Add(usage);
+        result.Add(usage);
       }
     }
     return result;
