@@ -24,6 +24,7 @@ type private Options = {
   Dependencies: string
   TypeAssemblies: string list
   TypeOutFile: string
+  Rules: SubmoduleRules
 }
 
 type private LoadState = {
@@ -35,7 +36,7 @@ type private LoadState = {
 }
 
 let private buildFileCollection o =
-  let afc = new AssemblyFileCollection()
+  let afc = new AssemblyFileCollection(o.Rules)
   for a in o.Assemblies do
     let tag = Path.GetFileNameWithoutExtension(a)
     cp $"Adding \fg{a}\f0..."
@@ -307,6 +308,9 @@ let run args =
       rest |> parseMore {o with TypeAssemblies = ta :: o.TypeAssemblies}
     | "-typo" :: file :: rest ->
       rest |> parseMore {o with TypeOutFile = file}
+    | "-rule" :: m :: prefix :: rest ->
+      o.Rules.AddRule(m, prefix) |> ignore
+      rest |> parseMore o
     | [] ->
       if o.Assemblies |> List.isEmpty then
         cp "\foNo assembly arguments (\fg-a\fo) given\f0."
@@ -325,6 +329,7 @@ let run args =
     Dependencies = null
     TypeAssemblies = []
     TypeOutFile = null
+    Rules = new SubmoduleRules()
   }
   match oo with
   | Some(o) ->

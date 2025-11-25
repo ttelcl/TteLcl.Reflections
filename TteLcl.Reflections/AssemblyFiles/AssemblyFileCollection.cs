@@ -35,13 +35,14 @@ public class AssemblyFileCollection
   /// <summary>
   /// Create a new <see cref="AssemblyFileCollection"/>
   /// </summary>
-  public AssemblyFileCollection(LoadSystem loadSystem = LoadSystem.Undefined)
+  public AssemblyFileCollection(SubmoduleRules? rules = null, LoadSystem loadSystem = LoadSystem.Undefined)
   {
     _assemblyFiles = new Dictionary<string, HashSet<AssemblyFileInfo>>(StringComparer.OrdinalIgnoreCase);
     _assemblyFilesView = new Dictionary<string, IReadOnlySet<AssemblyFileInfo>>(StringComparer.OrdinalIgnoreCase);
     _assemblyTags = new Dictionary<AssemblyFileInfo, HashSet<string>>();
     _assemblyTagsView = new Dictionary<AssemblyFileInfo, IReadOnlySet<string>>();
     LoadSystem = loadSystem;
+    SubmoduleNamingRules = rules ?? new SubmoduleRules();
   }
 
   /// <summary>
@@ -53,6 +54,11 @@ public class AssemblyFileCollection
   /// The bitness, if locked in
   /// </summary>
   public BitMode BitMode { get; private set; }
+
+  /// <summary>
+  /// Rules that can potentially upgrade a generated module name to a submodule name
+  /// </summary>
+  public SubmoduleRules SubmoduleNamingRules { get; }
 
   /// <summary>
   /// Enumerate the distinct <see cref="AssemblyFileInfo"/> objects cached in this
@@ -108,7 +114,8 @@ public class AssemblyFileCollection
     }
     foreach(var tag in tags)
     {
-      tagset.Add(tag);
+      var upgradedTag = SubmoduleNamingRules.ApplyIfmatch(tag, assumedName);
+      tagset.Add(upgradedTag);
     }
     return added;
 
