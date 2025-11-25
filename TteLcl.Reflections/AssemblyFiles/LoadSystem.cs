@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace TteLcl.Reflections;
+namespace TteLcl.Reflections.AssemblyFiles;
 
 /// <summary>
 /// The set of assumptions and rules for assemblies

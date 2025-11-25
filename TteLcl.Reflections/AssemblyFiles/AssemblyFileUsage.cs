@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 using Newtonsoft.Json;
 
-namespace TteLcl.Reflections;
+namespace TteLcl.Reflections.AssemblyFiles;
 
 /// <summary>
 /// Reports a summary of a <see cref="AssemblyFileInfo"/> and whether

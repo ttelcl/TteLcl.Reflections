@@ -10,6 +10,8 @@ using Newtonsoft.Json;
 
 using TteLcl.Graphs;
 
+using TteLcl.Reflections.AssemblyFiles;
+
 namespace TteLcl.Reflections.Graph;
 
 /// <summary>

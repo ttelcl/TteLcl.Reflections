@@ -12,7 +12,7 @@ using System.Reflection.Metadata;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace TteLcl.Reflections;
+namespace TteLcl.Reflections.AssemblyFiles;
 
 /// <summary>
 /// Caches information about a potential assembly file

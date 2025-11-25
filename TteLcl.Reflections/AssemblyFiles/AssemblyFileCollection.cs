@@ -16,7 +16,7 @@ using System.Threading.Tasks;
 using TteLcl.Reflections.ConfigurationFiles;
 using TteLcl.Reflections.Graph;
 
-namespace TteLcl.Reflections;
+namespace TteLcl.Reflections.AssemblyFiles;
 
 /// <summary>
 /// Builds a collection of assembly file paths, for passing on to the
@@ -354,7 +354,7 @@ public class AssemblyFileCollection
     [NotNullWhen(true)] out AssemblyFileInfo? info)
   {
     var file = assembly.Location;
-    if(String.IsNullOrEmpty(file))
+    if(string.IsNullOrEmpty(file))
     {
       info = null;
       return false;

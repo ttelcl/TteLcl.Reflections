@@ -9,7 +9,7 @@ open Newtonsoft.Json
 open TteLcl.Csv
 open TteLcl.Csv.Core
 
-open TteLcl.Reflections
+open TteLcl.Reflections.AssemblyFiles
 open TteLcl.Reflections.Graph
 open TteLcl.Reflections.TypesModel
 
