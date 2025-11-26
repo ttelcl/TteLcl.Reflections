@@ -27,7 +27,17 @@ let private runPurify o =
   cp $"  Seed nodes: \fy{seeds}\f0."
   let sinks = String.Join("\f0,\fo ", analyzer.Sinks)
   cp $"  Sink nodes: \fo{sinks}\f0."
-  let reachMap = analyzer.GetReachMap(o.BreakCircles)
+  let circles = if o.BreakCircles then new KeySetMap() else null
+  let reachMap = analyzer.GetReachMap(circles)
+  if circles <> null then
+    let circleCount = circles.PairCount
+    if circleCount = 0 then
+      cp "Circular dependencies: \fg0\f0."
+    else
+      cp $"\fyCircular dependencies\f0: \fr{circleCount}\f0:"
+      for kvp in circles do
+        for target in kvp.Value do
+          cp $"    \fo{kvp.Key}\f0 -> \fy{target}\f0."
   let purified = reachMap.NotInSelfProjection(analyzer.TargetEdges)
   let purified = new KeySetMapView(purified)
   graph.DisconnectTargetsExcept(purified, true);
