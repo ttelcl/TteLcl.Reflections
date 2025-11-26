@@ -53,12 +53,13 @@ let usage focus =
     cp "  \fg-lr\f0\fx                 Lay out the graph from left to right instead of top to bottom"
     cp ""
   if showSection "supergraph" then
-    cp "\fographops supergraph \fg-i \fcinputfile\f0 [\fg-prop \fcproperty\f0] [\fg-o \fcoutputfile\f0] [\fg-prefix \fcseparator \fCmaxcount\f0]"
+    cp "\fographops supergraph \fg-i \fcinputfile\f0 [\fg-prop \fcproperty\f0] [\fg-o \fcoutputfile\f0] [\fg-prefix \fcseparator \fCmaxcount\f0] [\fg-nonodes\f0]"
     cp "  Calculate a supergraph, merging all 'equivalent' nodes into one"
   if showDetails "supergraph" then
     cp "  \fg-prop \fcproperty\f0      If given, 'equivalent' means 'same value for the given node \fcproperty\f0' (default 'category')"
     cp "  \fg-prefix \fcseparator \fCmaxcount\f0    Synthesize a property 'prefix' containing the common prefix of contained node names"
     cp "  \fx        \fx          \fx        \fx    Prefixes are based on up to \fCmaxcount\f0 segments when splitting names with \fcseparator\f0."
+    cp "  \fg-nonodes\fo\fx            Skip emitting the 'node' keyed tags in the output"
     cp ""
   if showSection "csv" then
     cp "\fographops csv \f0[\foexport\f0] \fg-i \fcinputfile\f0 {\fg-np \fo*\f0|\fcproperty\f0}"

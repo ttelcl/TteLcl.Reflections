@@ -150,7 +150,7 @@ public class Graph: IHasMetadata
   /// Classify all nodes using <paramref name="classifier"/>, and group them based on the classification
   /// </summary>
   public Dictionary<K, List<GraphNode>> ClassifyNodes<K>(Func<GraphNode, K> classifier, IEqualityComparer<K>? comparer = null)
-    where K: notnull
+    where K : notnull
   {
     var result = new Dictionary<K, List<GraphNode>>(comparer);
     foreach(var node in Nodes.Values)
@@ -175,7 +175,7 @@ public class Graph: IHasMetadata
     var result = new Dictionary<string, List<GraphNode>>(comparer);
     foreach(var node in Nodes.Values)
     {
-      if(node.Metadata.Properties.TryGetValue(propertyName, out var classification) 
+      if(node.Metadata.Properties.TryGetValue(propertyName, out var classification)
         && !String.IsNullOrEmpty(classification))
       {
         if(!result.TryGetValue(classification, out var list))
@@ -203,13 +203,16 @@ public class Graph: IHasMetadata
     }
     return new KeySetMapView(ksm);
   }
-  
+
   /// <summary>
   /// Construct the supergraph of this graph based on the given <paramref name="classifier"/>.
   /// </summary>
   /// <param name="classifier"></param>
+  /// <param name="addNodes">
+  /// If true add "node" tags
+  /// </param>
   /// <returns></returns>
-  public Graph SuperGraph(INodeClassifier classifier)
+  public Graph SuperGraph(INodeClassifier classifier, bool addNodes = true)
   {
     var result = new Graph(Metadata);
     var targetEdges = EdgesSnapShot();
@@ -224,10 +227,11 @@ public class Graph: IHasMetadata
       // add tags to link back to the original nodes
       foreach(var nodeKey in kvp.Value)
       {
-        if(superNode.Metadata.AddTag("node", nodeKey))
+        if(addNodes)
         {
-          nodeTagCount++;
+          superNode.Metadata.AddTag("node", nodeKey);
         }
+        nodeTagCount++;
       }
       superNode.Metadata.Properties["sublabel"] =
         $"({nodeTagCount} nodes)";

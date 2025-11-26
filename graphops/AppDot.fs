@@ -65,7 +65,7 @@ let private runDot o =
       use _ = dw.StartSubGraph(subgraphid, rank)
       for node in kvp.Value do
         let sublabels =
-          [| "sublabel" ; "module"|]
+          [| "sublabel" ; "module" |]
           |> node.Metadata.MapProperties
           |> Seq.toList
         use _ = dw.StartNode(node.Key, sublabels, "box")
@@ -82,6 +82,15 @@ let private runDot o =
         let src = edge.Source.Key
         let tgt = edge.Target.Key
         use _ = dw.StartEdge(src, tgt)
+        let hasColor, color = edge.Metadata.Properties.TryGetValue("color")
+        let color =
+          if edge.Metadata.Tags.Contains("cyclelink") then
+            dw.WriteProperty("constraint", "false")
+            if color = null then "#ff8822" else color
+          else
+            color
+        if color <> null then
+          dw.WriteProperty("color", color)
         ()
     ()
   o.OutputFile |> finishFile
