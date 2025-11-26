@@ -35,6 +35,9 @@ let rec run arglist =
   | "csv" :: "export" :: rest
   | "csv" :: rest ->
     rest |> AppCsvExport.run
+  | "cycles" :: rest
+  | "cycle" :: rest ->
+    rest |> AppCycles.run
   | x :: _ ->
     cp $"\frUnrecognized command: \fo{x}\f0."
     cp ""

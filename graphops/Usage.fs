@@ -17,6 +17,13 @@ let usage focus =
     cp "  List node tags in the graph"
   if showDetails "tags" then
     cp ""
+  if showSection "cycles" then
+    cp "\fographops cycles \fg-i \fcinputfile \f0[\fg-o \fcoutputfile\f0] [\fg-tag\f0|\fg-split \fccyclefile\f0]"
+    cp "  Find cycles in the graph and tag them or split the graph based on them"
+  if showDetails "cycles" then
+    cp "  \fg-tag\f0\fx                Tagging mode: tag edges where cycles are detected in the edge metadata. This is the default"
+    cp "  \fg-split \fccyclefile\f0    Splitting mode: create two outputs: one with cycle key edges removed, and the other with just those"
+    cp ""
   if showSection "purify" then
     cp "\fographops purify \fg-i \fcinputfile \f0[\fg-o \fcoutputfile\f0] [\fg-breakcircles\f0]"
     cp "  Remove superfluous edges"
