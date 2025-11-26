@@ -283,7 +283,9 @@ public class Graph: IHasMetadata
   }
 
   /// <summary>
-  /// Add an edge between two existing nodes
+  /// Add an edge between two existing nodes that are not connected yet. For the use case
+  /// where an edge may exist already, use <see cref="ConnectOrMergeEdge(string, string, Metadata?)"/>
+  /// instead.
   /// </summary>
   /// <param name="source">
   /// The key of the source node
@@ -309,6 +311,89 @@ public class Graph: IHasMetadata
         $"Missing target node: '{target}'");
     }
     return sourceNode.Connect(targetNode, metadata);
+  }
+
+  /// <summary>
+  /// If there is an edge between <paramref name="source"/> and <paramref name="target"/>
+  /// then return it. Otherwise return null
+  /// </summary>
+  /// <param name="source"></param>
+  /// <param name="target"></param>
+  /// <returns></returns>
+  public GraphEdge? FindEdge(string source, string target)
+  {
+    if(!_nodes.TryGetValue(source, out var sourceNode))
+    {
+      throw new InvalidOperationException(
+        $"Missing source node: '{source}'");
+    }
+    if(!_nodes.TryGetValue(target, out var targetNode))
+    {
+      throw new InvalidOperationException(
+        $"Missing target node: '{target}'");
+    }
+    if(sourceNode.Targets.TryGetValue(target, out var edge))
+    {
+      return edge;
+    }
+    else
+    {
+      return null;
+    }
+  }
+
+  /// <summary>
+  /// Add an edge between <paramref name="source"/> and <paramref name="target"/> if
+  /// it does not exist yet (using the specified edge <paramref name="metadata"/>).
+  /// Otherwise import <paramref name="metadata"/> into the existing edge metadata.
+  /// For the use case where it is an error if the edge already exists, use
+  /// <see cref="Connect(string, string, Metadata?)"/> instead.
+  /// </summary>
+  /// <param name="source"></param>
+  /// <param name="target"></param>
+  /// <param name="metadata"></param>
+  /// <returns></returns>
+  public GraphEdge ConnectOrMergeEdge(string source, string target, Metadata? metadata = null)
+  {
+    var edge = FindEdge(source, target);
+    if(edge != null)
+    {
+      if(metadata != null)
+      {
+        edge.Metadata.Import(metadata);
+      }
+      return edge;
+    }
+    else
+    {
+      return Connect(source, target, metadata);
+    }
+  }
+
+  /// <summary>
+  /// Create or merge multiple edges. Each key in <paramref name="edges"/> is a source key,
+  /// while the values for that entry are the targets for the edges to create or merge.
+  /// Returns each created or processed edge
+  /// </summary>
+  /// <param name="edges">
+  /// A mapping from source keys to sets of target keys, defining the edges.
+  /// </param>
+  /// <param name="metadata">
+  /// If not null, new edges will initially use this metadata, while existing edges will
+  /// have this metadata merged into their metadata.
+  /// </param>
+  /// <returns></returns>
+  public IEnumerable<GraphEdge> ConnectMany(IReadOnlyDictionary<string, KeySet> edges, Metadata? metadata = null)
+  {
+    foreach(var kvp in edges)
+    {
+      var source = kvp.Key;
+      foreach(var target in kvp.Value)
+      {
+        var edge = ConnectOrMergeEdge(source, target, Metadata);
+        yield return edge;
+      }
+    }
   }
 
   /// <summary>

@@ -218,16 +218,12 @@ public class GraphAnalyzer
               $"Encountered circular dependency while processing '{seed}' -> '{next}'. Guard set = {guardSet}");
           }
           circularEdges.AddPair(seed, next);
-
-          // WIP; PLACEHOLDER
-          powerSet.Add(next);
-          //var nextSet = FillPowerSet(next, edges, powerMap, circularGuard, skipCircles);
-          //powerSet.UnionWith(nextSet);
+          // Do NOT add to powerSet and do NOT recurse.
         }
         else
         {
           powerSet.Add(next);
-          // recurse
+          // Recurse
           var nextSet = FillPowerSet(next, edges, powerMap, circularGuard, circularEdges);
           powerSet.UnionWith(nextSet);
         }

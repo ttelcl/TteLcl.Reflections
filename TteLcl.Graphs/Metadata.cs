@@ -170,7 +170,7 @@ public class Metadata: IHasMetadata
   /// Get the collection of "unkeyed tags". Those are just keyed tags with
   /// a key that is an empty string.
   /// </summary>
-  public IReadOnlySet<string> Tags => this[""];
+  public HashSet<string> Tags => this[""];
 
   /// <summary>
   /// The set of tag keys, including the default key.

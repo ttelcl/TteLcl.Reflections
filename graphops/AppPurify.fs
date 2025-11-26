@@ -41,6 +41,11 @@ let private runPurify o =
   let purified = reachMap.NotInSelfProjection(analyzer.TargetEdges)
   let purified = new KeySetMapView(purified)
   graph.DisconnectTargetsExcept(purified, true);
+  if circles <> null then
+    cp "Patching back and tagging circular edges"
+    for circledge in graph.ConnectMany(circles) do
+      let metadata = circledge.Metadata
+      metadata.Tags.Add("cyclelink") |> ignore
   cp $"Saving \fg{o.OutputFile}\f0."
   cp $"  (\fb{graph.NodeCount}\f0 nodes, \fc{graph.EdgeCount}\f0 edges, \fy{graph.SeedCount}\f0 seeds, \fo{graph.SinkCount}\f0 sinks)"
   graph.Serialize(o.OutputFile + ".tmp")
