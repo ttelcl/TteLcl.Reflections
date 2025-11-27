@@ -38,6 +38,8 @@ let rec run arglist =
   | "cycles" :: rest
   | "cycle" :: rest ->
     rest |> AppCycles.run
+  | "scc" :: rest ->
+    rest |> AppScc.run
   | x :: _ ->
     cp $"\frUnrecognized command: \fo{x}\f0."
     cp ""

@@ -17,6 +17,11 @@ let usage focus =
     cp "  List node tags in the graph"
   if showDetails "tags" then
     cp ""
+  if showSection "scc" then
+    cp "\fographops scc \fg-i \fcinputfile \f0[\fg-o \fcoutputfile\f0]"
+    cp "  Find Strongly Connected Components. Adds an 'scc' property to each node with a numeric SCC index."
+  if showDetails "scc" then
+    cp ""
   if showSection "cycles" then
     cp "\fographops cycles \fg-i \fcinputfile \f0[\fg-o \fcoutputfile\f0] [\fg-tag\f0|\fg-split \fccyclefile\f0]"
     cp "  Find cycles in the graph and tag them or split the graph based on them"

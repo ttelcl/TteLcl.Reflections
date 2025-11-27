@@ -235,4 +235,97 @@ public class GraphAnalyzer
   }
 
 
+  /// <summary>
+  /// Calculate the set of strongly connected components of this graph
+  /// </summary>
+  /// <returns>
+  /// A list of sets of node keys
+  /// </returns>
+  public List<KeySet> StronglyConnectedComponents()
+  {
+
+    var sccAlgorithm = new StrongConnectedComponentAlgorithm(this);
+    return sccAlgorithm.Run();
+  }
+
+  /// <summary>
+  /// Implements https://en.wikipedia.org/wiki/Tarjan%27s_strongly_connected_components_algorithm
+  /// </summary>
+  private sealed class StrongConnectedComponentAlgorithm
+  {
+    private readonly GraphAnalyzer _graph;
+    private int _index = 0;
+    private readonly Stack<string> _stack = new Stack<string>();
+    private readonly KeyMap<int> _nodeIndex = new KeyMap<int>();
+    private readonly KeyMap<int> _nodeLowlink = new KeyMap<int>();
+    private readonly KeySet _onStack = new KeySet();
+    private readonly List<KeySet> _components = new List<KeySet>();
+
+    public StrongConnectedComponentAlgorithm(
+      GraphAnalyzer graph)
+    {
+      _graph = graph;
+    }
+
+    public List<KeySet> Run()
+    {
+      foreach(var v in _graph.Nodes)
+      {
+        if(!_nodeIndex.ContainsKey(v))
+        {
+          StrongConnect(v);
+        }
+      }
+      return _components;
+    }
+
+    private void StrongConnect(string v)
+    {
+      // Set the depth index for v to the smallest unused index
+      _nodeIndex[v] = _index;
+      _nodeLowlink[v] = _index;
+      _index++;
+      _stack.Push(v);
+      _onStack.Add(v);
+      foreach(var w in _graph.TargetEdges[v])
+      {
+        var vLow = _nodeLowlink[v];
+        if(!_nodeIndex.ContainsKey(w))
+        {
+          // Successor w has not yet been visited; recurse on it
+          StrongConnect(w);
+          var wLow = _nodeLowlink[w];
+          if(wLow < vLow)
+          {
+            _nodeLowlink[v] = wLow;
+          }
+        }
+        else if(_onStack.Contains(w))
+        {
+          // Successor w is in stack S and hence in the current SCC
+          // If w is not on stack, then (v, w) is an edge pointing to an SCC already found and must be ignored
+          var wIndex = _nodeIndex[w];
+          if(wIndex < vLow)
+          {
+            _nodeLowlink[v] = wIndex;
+          }
+        }
+      }
+      if(_nodeLowlink[v] == _nodeIndex[v])
+      {
+        // If v is a root node, pop the stack and generate an SCC
+        var scc = new KeySet();
+        var done = false;
+        while(!done)
+        {
+          var w = _stack.Pop();
+          _onStack.Remove(w);
+          scc.Add(w);
+          done = w == v;
+        }
+        _components.Add(scc);
+      }
+    }
+  }
+
 }
