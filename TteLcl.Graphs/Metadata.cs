@@ -195,7 +195,7 @@ public class Metadata: IHasMetadata
   /// Import metadata from another metadata object
   /// </summary>
   /// <param name="source">
-  /// The object to import from
+  /// The object to import from.
   /// </param>
   /// <param name="tags">
   /// If true, then import all tags (using the same keys)
