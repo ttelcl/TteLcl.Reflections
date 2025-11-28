@@ -18,7 +18,7 @@ let usage focus =
   if showDetails "tags" then
     cp ""
   if showSection "scc" then
-    cp "\fographops scc \fg-i \fcinputfile \f0[\fg-o \fcoutputfile\f0] [\fg-prefix \fcprefix\f0|\fg-autoname\f0]"
+    cp "\fographops scc \fg-i \fcinputfile \f0[\fg-prefix \fcprefix\f0|\fg-autoname\f0]"
     cp "  Find Strongly Connected Components. Adds an 'scc' property to each node with a numeric SCC index."
   if showDetails "scc" then
     cp "  \fg-prefix \fcprefix\f0      Use the prefix for naming components. Default '\foSCC-\f0'"
@@ -32,10 +32,11 @@ let usage focus =
     cp "  \fg-split \fccyclefile\f0    Splitting mode: create two outputs: one with cycle key edges removed, and the other with just those"
     cp ""
   if showSection "purify" then
-    cp "\fographops purify \fg-i \fcinputfile \f0[\fg-o \fcoutputfile\f0] [\fg-breakcircles\f0]"
+    cp "\fographops purify \fg-i \fcinputfile \f0[\fg-o \fcoutputfile\f0] [\fg-breakcircles\f0] [\fg-scc\f0]"
     cp "  Remove superfluous edges"
   if showDetails "purify" then
     cp "  \fg-breakcircles\f0\fx       Break circular dependencies (instead of giving an error). (\fycurrently flawed\f0)"
+    cp "  \fg-scc\f0\fx                Prune the graph of strongly connected components instead of the whole graph"
     cp ""
   if showSection "filter" then
     cp "\fographops filter \fg-i \fcinputfile\f0 [\fg-include\f0|\fg-exclude\f0] {\fg-n \fctag\f0} [\fg-o \fcoutputfile\f0]"

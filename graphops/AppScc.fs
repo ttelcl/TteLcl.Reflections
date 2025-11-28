@@ -14,7 +14,6 @@ open CommonTools
 
 type private Options = {
   InputFile: string
-  OutputFile: string
   Prefix: string
 }
 
@@ -35,9 +34,17 @@ let private runScc o =
       let node = graph.Nodes[node]
       node.Metadata.SetProperty("scc", c.Name)
       node.Metadata.SetProperty("sccindex", c.Index.ToString())
-  cp $"Saving '\fg{o.OutputFile}\f0'"
-  graph.Serialize(o.OutputFile + ".tmp")
-  o.OutputFile |> finishFile
+  do
+    let taggedName = Graph.DeriveMissingName(o.InputFile, ".scc-tagged.graph.json")
+    cp $"Saving '\fg{taggedName}\f0'"
+    graph.Serialize(taggedName + ".tmp")
+    taggedName |> finishFile
+  let sccGraph = sccResult.ComponentGraph(graph)
+  do
+    let graphName = Graph.DeriveMissingName(o.InputFile, ".scc-graph.graph.json")
+    cp $"Saving '\fg{graphName}\f0'"
+    sccGraph.Serialize(graphName + ".tmp")
+    graphName |> finishFile
   0
 
 let run args =
@@ -51,8 +58,6 @@ let run args =
       None
     | "-i" :: file :: rest ->
       rest |> parseMore {o with InputFile = file}
-    | "-o" :: file :: rest ->
-      rest |> parseMore {o with OutputFile = file}
     | "-prefix" :: prefix :: rest ->
       rest |> parseMore {o with Prefix = prefix}
     | "-autoname" :: rest ->
@@ -62,22 +67,12 @@ let run args =
         cp "\foNo input file (\fg-i\fo) given\f0."
         None
       else
-        let missingOutputName = o.OutputFile |> String.IsNullOrEmpty
-        let o = {o with OutputFile = Graph.DeriveMissingName(o.InputFile, ".scc.graph.json", o.OutputFile)}
-        if o.OutputFile |> String.IsNullOrEmpty then
-          let shortInput = Path.GetFileName(o.InputFile)
-          cp $"\foNo output file (\fg-o\f0) given, and cannot derive the output name from \f0'{shortInput}\f0'"
-          None
-        else
-          if missingOutputName then
-            cp $"Using output name \fc{o.OutputFile}\f0."
-          o |> Some
+        o |> Some
     | x :: _ ->
       cp $"\frUnrecognized argument \f0'\fy{x}\f0'"
       None
   let oo = args |> parseMore {
     InputFile = null
-    OutputFile = null
     Prefix = "SCC-"
   }
   match oo with

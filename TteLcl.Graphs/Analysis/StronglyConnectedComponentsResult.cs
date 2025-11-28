@@ -39,7 +39,11 @@ public class StronglyConnectedComponentsResult
       numberFormat = "D4";
     }
     var components = new List<StronglyConnectedComponent>();
+    var componentsByName = new KeyMap<StronglyConnectedComponent>();
+    var componentForNode = new KeyMap<StronglyConnectedComponent>();
     Components = components;
+    ComponentsByName = componentsByName;
+    ComponentForNode = componentForNode;
     for(var i = 0; i < result.Count; i++)
     {
       var ks = result[i];
@@ -61,6 +65,11 @@ public class StronglyConnectedComponentsResult
       }
       var component = new StronglyConnectedComponent(ks, name, i);
       components.Add(component);
+      componentsByName.Add(name, component);
+      foreach(var node in ks)
+      {
+        componentForNode.Add(node, component);
+      }
     }
   }
 
@@ -68,4 +77,56 @@ public class StronglyConnectedComponentsResult
   /// The components as a topologically ordered list
   /// </summary>
   public IReadOnlyList<StronglyConnectedComponent> Components { get; }
+
+  /// <summary>
+  /// The components indexed by component name
+  /// </summary>
+  public IReadOnlyDictionary<string, StronglyConnectedComponent> ComponentsByName { get; }
+
+  /// <summary>
+  /// A mapping from node names to components
+  /// </summary>
+  public IReadOnlyDictionary<string, StronglyConnectedComponent> ComponentForNode { get; }
+
+  /// <summary>
+  /// Create the Strongly Connected Component graph based on this SCC decomposition
+  /// of the given <paramref name="source"/> graph
+  /// </summary>
+  /// <param name="source"></param>
+  /// <returns></returns>
+  /// <exception cref="InvalidOperationException"></exception>
+  public Graph ComponentGraph(Graph source)
+  {
+    var componentGraph = new Graph();
+    foreach(var component in Components)
+    {
+      // Start by creating disconnected nodes
+      var cnode = componentGraph.AddNode(component.Name);
+      cnode.Metadata.SetProperty("sccindex", component.Index.ToString());
+    }
+    foreach(var component in Components)
+    {
+      // Then add edges
+      foreach(var sourceName in component.Components)
+      {
+        if(!source.Nodes.TryGetValue(sourceName, out var sourceNode))
+        {
+          throw new InvalidOperationException(
+            $"Incompatible graph: node '{sourceName}' is missing");
+        }
+        foreach(var targetName in sourceNode.Targets.Keys)
+        {
+          // Allow the source graph to be bigger than this SCC graph: ignore missing target nodes
+          if(ComponentForNode.TryGetValue(targetName, out var targetComponent))
+          {
+            if(component.Name != targetComponent.Name)
+            {
+              componentGraph.ConnectOrMergeEdge(component.Name, targetComponent.Name);
+            }
+          }
+        }
+      }
+    }
+    return componentGraph;
+  }
 }
