@@ -107,7 +107,7 @@ public class StronglyConnectedComponentsResult
     foreach(var component in Components)
     {
       // Then add edges
-      foreach(var sourceName in component.Components)
+      foreach(var sourceName in component.Nodes)
       {
         if(!source.Nodes.TryGetValue(sourceName, out var sourceNode))
         {

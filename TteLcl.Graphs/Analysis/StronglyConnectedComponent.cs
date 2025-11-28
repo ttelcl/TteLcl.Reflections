@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using Newtonsoft.Json;
+
 namespace TteLcl.Graphs.Analysis;
 
 /// <summary>
@@ -15,31 +17,35 @@ public class StronglyConnectedComponent
   /// <summary>
   /// Create a new <see cref="StronglyConnectedComponent"/> instance
   /// </summary>
-  /// <param name="components"></param>
+  /// <param name="nodes"></param>
   /// <param name="name"></param>
   /// <param name="index"></param>
+  [JsonConstructor]
   public StronglyConnectedComponent(
-    IReadOnlySet<string> components,
+    IReadOnlySet<string> nodes,
     string name,
     int index)
   {
-    Components = components;
+    Nodes = nodes;
     Name = name;
     Index = index;
   }
 
   /// <summary>
-  /// The components in this strongly connected component
+  /// The 0-based index
   /// </summary>
-  public IReadOnlySet<string> Components { get; }
+  [JsonProperty("index")]
+  public int Index { get; }
 
   /// <summary>
   /// A name for this component
   /// </summary>
+  [JsonProperty("name")]
   public string Name { get; }
 
   /// <summary>
-  /// The 0-based index
+  /// The nodes in this strongly connected component
   /// </summary>
-  public int Index { get; }
+  [JsonProperty("nodes")]
+  public IReadOnlySet<string> Nodes { get; }
 }

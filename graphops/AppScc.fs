@@ -26,14 +26,20 @@ let private runScc o =
   let analyzer = new GraphAnalyzer(graph)
   let sccResult = analyzer.StronglyConnectedComponents(o.Prefix)
   let components = sccResult.Components
-  let minSize = components |> Seq.map (fun c -> c.Components.Count) |> Seq.min
-  let maxSize = components |> Seq.map (fun c -> c.Components.Count) |> Seq.max
+  let minSize = components |> Seq.map (fun c -> c.Nodes.Count) |> Seq.min
+  let maxSize = components |> Seq.map (fun c -> c.Nodes.Count) |> Seq.max
   cp $"Found \fb{components.Count}\f0 components, varying in size from \fb{minSize}\f0 to \fb{maxSize}\f0."
   for c in components do
-    for node in c.Components do
+    for node in c.Nodes do
       let node = graph.Nodes[node]
       node.Metadata.SetProperty("scc", c.Name)
       node.Metadata.SetProperty("sccindex", c.Index.ToString())
+  let componentsName = Graph.DeriveMissingName(o.InputFile, ".scc-components.json")
+  do
+    use w = componentsName |> startFile
+    let json = JsonConvert.SerializeObject(components, Formatting.Indented)
+    w.WriteLine(json)
+  componentsName |> finishFile
   do
     let taggedName = Graph.DeriveMissingName(o.InputFile, ".scc-tagged.graph.json")
     cp $"Saving '\fg{taggedName}\f0'"
