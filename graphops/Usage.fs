@@ -36,7 +36,7 @@ let usage focus =
     cp "  Remove superfluous edges"
   if showDetails "purify" then
     cp "  \fg-breakcircles\f0\fx       Break circular dependencies (instead of giving an error). (\fycurrently flawed\f0)"
-    cp "  \fg-scc\f0\fx                Prune the graph of strongly connected components instead of the whole graph"
+    cp "  \fg-scc\f0\fx                Prune the graph of strongly connected components (and project that back) instead of the whole graph"
     cp ""
   if showSection "filter" then
     cp "\fographops filter \fg-i \fcinputfile\f0 [\fg-include\f0|\fg-exclude\f0] {\fg-n \fctag\f0} [\fg-o \fcoutputfile\f0]"
