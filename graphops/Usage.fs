@@ -77,11 +77,12 @@ let usage focus =
     cp "  \fg-nonodes\fo\fx            Skip emitting the 'node' keyed tags in the output"
     cp ""
   if showSection "csv" then
-    cp "\fographops csv \f0[\foexport\f0] \fg-i \fcinputfile\f0 {\fg-np \fo*\f0|\fcproperty\f0}"
+    cp "\fographops csv \f0[\foexport\f0] \fg-i \fcinputfile\f0 {\fg-np \fo*\f0|\fcproperty\f0} [\fg-pio \fcprop\f0]"
     cp "  Export a graph to a set of CSV files: one for nodes (and their properties), one for edges, one for node tags (including keyed node tags)."
   if showDetails "csv" then
     cp "  \fg-np \fo*\f0               Export all node properties as columns in the node list."
     cp "  \fg-np \fcproperty\f0        Export the named node property as a column in the node list and in the edge list for source and target nodes"
+    cp "  \fg-pio \fcprop\f0           Include information on incoming, outgoing, and internal edges in the partition implied by node property \fcprop\f0."
     cp ""
   if true then
     cp "Common options:"
