@@ -24,10 +24,10 @@ let private runScc o =
   let edgeCountBefore = graph.EdgeCount
   cp $"  (\fb{nodeCountBefore}\f0 nodes, \fc{edgeCountBefore}\f0 edges, \fy{graph.SeedCount}\f0 seeds, \fo{graph.SinkCount}\f0 sinks)"
   let analyzer = new GraphAnalyzer(graph)
-  let components = analyzer.StronglyConnectedComponents() |> Seq.rev |> Seq.toArray
+  let components = analyzer.StronglyConnectedComponents()
   let minSize = components |> Seq.map (fun ks -> ks.Count) |> Seq.min
   let maxSize = components |> Seq.map (fun ks -> ks.Count) |> Seq.max
-  cp $"Found \fb{components.Length}\f0 components, varying in size from \fb{minSize}\f0 to \fb{maxSize}\f0."
+  cp $"Found \fb{components.Count}\f0 components, varying in size from \fb{minSize}\f0 to \fb{maxSize}\f0."
   let namedComponents =
     components
     |> Seq.mapi (fun i ks -> (ks, $"SCC-{i:D3}"))

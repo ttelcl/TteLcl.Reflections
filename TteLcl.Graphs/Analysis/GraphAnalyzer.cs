@@ -276,6 +276,9 @@ public class GraphAnalyzer
           StrongConnect(v);
         }
       }
+      // The components are generated in toplogically sorted order - but the wrong way around.
+      // Before returning: reverse them
+      _components.Reverse();
       return _components;
     }
 
