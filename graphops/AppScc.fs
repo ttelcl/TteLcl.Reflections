@@ -15,6 +15,7 @@ open CommonTools
 type private Options = {
   InputFile: string
   OutputFile: string
+  Prefix: string
 }
 
 let private runScc o =
@@ -24,17 +25,16 @@ let private runScc o =
   let edgeCountBefore = graph.EdgeCount
   cp $"  (\fb{nodeCountBefore}\f0 nodes, \fc{edgeCountBefore}\f0 edges, \fy{graph.SeedCount}\f0 seeds, \fo{graph.SinkCount}\f0 sinks)"
   let analyzer = new GraphAnalyzer(graph)
-  let components = analyzer.StronglyConnectedComponents()
-  let minSize = components |> Seq.map (fun ks -> ks.Count) |> Seq.min
-  let maxSize = components |> Seq.map (fun ks -> ks.Count) |> Seq.max
+  let sccResult = analyzer.StronglyConnectedComponents(o.Prefix)
+  let components = sccResult.Components
+  let minSize = components |> Seq.map (fun c -> c.Components.Count) |> Seq.min
+  let maxSize = components |> Seq.map (fun c -> c.Components.Count) |> Seq.max
   cp $"Found \fb{components.Count}\f0 components, varying in size from \fb{minSize}\f0 to \fb{maxSize}\f0."
-  let namedComponents =
-    components
-    |> Seq.mapi (fun i ks -> (ks, $"SCC-{i:D3}"))
-  for (ks, name) in namedComponents do
-    for key in ks do
-      let node = graph.Nodes[key]
-      node.Metadata.SetProperty("scc", name)
+  for c in components do
+    for node in c.Components do
+      let node = graph.Nodes[node]
+      node.Metadata.SetProperty("scc", c.Name)
+      node.Metadata.SetProperty("sccindex", c.Index.ToString())
   cp $"Saving '\fg{o.OutputFile}\f0'"
   graph.Serialize(o.OutputFile + ".tmp")
   o.OutputFile |> finishFile
@@ -53,6 +53,10 @@ let run args =
       rest |> parseMore {o with InputFile = file}
     | "-o" :: file :: rest ->
       rest |> parseMore {o with OutputFile = file}
+    | "-prefix" :: prefix :: rest ->
+      rest |> parseMore {o with Prefix = prefix}
+    | "-autoname" :: rest ->
+      rest |> parseMore {o with Prefix = null}
     | [] ->
       if o.InputFile |> String.IsNullOrEmpty then
         cp "\foNo input file (\fg-i\fo) given\f0."
@@ -74,6 +78,7 @@ let run args =
   let oo = args |> parseMore {
     InputFile = null
     OutputFile = null
+    Prefix = "SCC-"
   }
   match oo with
   | Some(o) ->

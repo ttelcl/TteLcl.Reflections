@@ -238,14 +238,20 @@ public class GraphAnalyzer
   /// <summary>
   /// Calculate the set of strongly connected components of this graph
   /// </summary>
+  /// <param name="namePrefix">
+  /// The prefix to use when constructing Strongly Connected Component names,
+  /// or null to generate names based on a random node picked from the component
+  /// </param>
   /// <returns>
-  /// A list of sets of node keys
+  /// A <see cref="StronglyConnectedComponentsResult"/> describing the result
   /// </returns>
-  public List<KeySet> StronglyConnectedComponents()
+  public StronglyConnectedComponentsResult StronglyConnectedComponents(
+    string? namePrefix = "SCC-")
   {
 
     var sccAlgorithm = new StrongConnectedComponentAlgorithm(this);
-    return sccAlgorithm.Run();
+    var raw = sccAlgorithm.Run();
+    return new StronglyConnectedComponentsResult(raw, namePrefix);
   }
 
   /// <summary>

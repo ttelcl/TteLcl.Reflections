@@ -18,9 +18,11 @@ let usage focus =
   if showDetails "tags" then
     cp ""
   if showSection "scc" then
-    cp "\fographops scc \fg-i \fcinputfile \f0[\fg-o \fcoutputfile\f0]"
+    cp "\fographops scc \fg-i \fcinputfile \f0[\fg-o \fcoutputfile\f0] [\fg-prefix \fcprefix\f0|\fg-autoname\f0]"
     cp "  Find Strongly Connected Components. Adds an 'scc' property to each node with a numeric SCC index."
   if showDetails "scc" then
+    cp "  \fg-prefix \fcprefix\f0      Use the prefix for naming components. Default '\foSCC-\f0'"
+    cp "  \fg-autoname\f0\fx           Name components by picking a random node in them"
     cp ""
   if showSection "cycles" then
     cp "\fographops cycles \fg-i \fcinputfile \f0[\fg-o \fcoutputfile\f0] [\fg-tag\f0|\fg-split \fccyclefile\f0]"
