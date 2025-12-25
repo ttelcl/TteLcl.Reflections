@@ -230,16 +230,16 @@ let typeColor (t:Type) =
 let private scanTypes o loadState =
   let afc = loadState.Afc
   let mlc = loadState.Mlc
-  let typeAssemblies = o.TypeAssemblies
   let outName =
     if o.TypeOutFile.EndsWith(".types.json", StringComparison.OrdinalIgnoreCase) |> not then
       o.TypeOutFile + ".types.json"
     else
       o.TypeOutFile
+  let typeAssemblies = o.TypeAssemblies
   let typeMap = AssemblyTypeMap.CreateNew()
   for tan in typeAssemblies do
-    if verbose then
-      cp $"Loading \fy{tan}\f0."
+    if (*verbose*) true then
+      cp $"Loading \fy{tan}\f0 for type analysis."
     let a = mlc.LoadFromAssemblyName(tan)
     if verbose then
       cp $"    Loaded \fg{a.Location}\f0."
@@ -283,6 +283,20 @@ let private runCheck o =
     loadDependencyGraph o loadState
   0
 
+let private loadAssemblyNames (file:string) (column:string) =
+  seq {
+    use reader = new CsvReader(file, false, false)
+    let assemblyCell = reader.GetColumn(column)
+    let firstCell = reader.GetColumn(0)
+    while reader.Next() do
+      let asm = assemblyCell.Get()
+      let firstColumn = firstCell.Get()
+      if firstColumn.StartsWith('#') |> not then
+        yield asm
+  }
+  |> Seq.distinct
+  |> Seq.toList
+
 let run args =
   let rec parseMore o args =
     match args with
@@ -304,6 +318,10 @@ let run args =
     | "-deps" :: filetag :: rest
     | "-dependencies" :: filetag :: rest ->
       rest |> parseMore {o with Dependencies = filetag}
+    | "-types" :: "@" :: file :: column :: rest ->
+      let assemblies = loadAssemblyNames file column
+      let assemblies = assemblies @ o.TypeAssemblies
+      rest |> parseMore {o with TypeAssemblies = assemblies}
     | "-types" :: ta :: rest ->
       rest |> parseMore {o with TypeAssemblies = ta :: o.TypeAssemblies}
     | "-typo" :: file :: rest ->

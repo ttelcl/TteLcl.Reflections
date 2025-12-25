@@ -107,7 +107,7 @@ let run args =
       rest |> parseMore {o with Tags = tag :: o.Tags}
     | "-nf" :: tagfile :: rest ->
       let tags = tagfile |> loadTags
-      let tags = List.append tags o.Tags
+      let tags = tags @ o.Tags
       rest |> parseMore {o with Tags = tags}
     | [] ->
       if o.InputFile |> String.IsNullOrEmpty then
