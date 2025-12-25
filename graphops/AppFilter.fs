@@ -28,7 +28,7 @@ let private runFilter o =
   cp $"Loading \fg{o.InputFile}\f0."
   let graph = o.InputFile |> Graph.DeserializeFile
   cp $"  (\fb{graph.NodeCount}\f0 nodes, \fc{graph.EdgeCount}\f0 edges, \fy{graph.SeedCount}\f0 seeds, \fo{graph.SinkCount}\f0 sinks)"
-  let taggedNodes = graph.FindTaggedNodes(o.Tags, "") |> Seq.toArray
+  let taggedNodes = graph.FindTaggedNodes(o.Tags) |> Seq.toArray
   if taggedNodes.Length = 0 then
     cp "\foThe tags did not match any nodes. Aborting\f0."
     1

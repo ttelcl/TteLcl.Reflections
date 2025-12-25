@@ -44,7 +44,8 @@ let usage focus =
   if showDetails "filter" then
     cp "  \fg-include\f0\fx            Keep the specified nodes, remove all others"
     cp "  \fg-exclude\f0\fx            Remove the specified nodes, keep all others"
-    cp "  \fg-n \fctag\f0              The tags used to match node(s) to keep or remove. Any resulting dangling edges are removed"
+    cp "  \fg-n \fctag\f0              The tags used to match node(s) to keep or remove. Any resulting dangling edges are removed."
+    cp "  \fx\fx\fx                    Tags can use the \fckey\fo::\fctag\f0 format."
     cp "  \fx\fx\fx                    (to remove nodes by name instead of tag use \fographops prune\f0 instead)"
     cp ""
   if showSection "prune" then

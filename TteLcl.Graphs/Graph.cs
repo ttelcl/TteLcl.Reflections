@@ -624,19 +624,35 @@ public class Graph: IHasMetadata
   }
 
   /// <summary>
-  /// Return nodes that have the specified <paramref name="tags"/>
+  /// Return nodes that have the specified <paramref name="tags"/> and the specified tagkey
   /// </summary>
   /// <param name="tags">
-  /// The tags to find
+  /// The tags to find. TagKey prefixes are ignored in this overload (instead, pass an explicit
+  /// <paramref name="tagkey"/>)
   /// </param>
   /// <param name="tagkey">
-  /// The key of the keyed tags to look for (the default "" is the key for
-  /// 'unkeyed' tags)
+  /// The key of the keyed tags to look for (for unkeyed tags pass "")
   /// </param>
   /// <returns></returns>
-  public IEnumerable<GraphNode> FindTaggedNodes(IEnumerable<string> tags, string tagkey = "")
+  public IEnumerable<GraphNode> FindTaggedNodes(IEnumerable<string> tags, string tagkey)
   {
     return Nodes.Values.Where(node => node.HasAnyTag(tagkey, tags));
+  }
+
+  /// <summary>
+  /// Return nodes that have any of the specified <i>keyed</i> tags of the form 'key::tag'.
+  /// (to search unkeyed tags only, use <see cref="FindTaggedNodes(IEnumerable{string}, string)"/>
+  /// passing "" as second argument)
+  /// </summary>
+  /// <param name="tags">
+  /// The keyed (or unkeyed) tags to look for.
+  /// </param>
+  /// <returns></returns>
+  public IEnumerable<GraphNode> FindTaggedNodes(IEnumerable<string> tags)
+  {
+    var keyTagPairs = tags.Select(t => Metadata.SplitTag(t));
+    var byKey = keyTagPairs.GroupBy(p => p[0], p => p[1]);
+    return byKey.SelectMany(g => FindTaggedNodes(g, g.Key));
   }
 
   /// <summary>

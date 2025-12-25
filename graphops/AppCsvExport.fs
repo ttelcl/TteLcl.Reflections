@@ -87,6 +87,46 @@ let private emitNodeTagsFile o (graph:Graph) =
             rowBuffer |> cw.WriteRow
   fileName |> finishFile
 
+type private CategoryTagNode = {
+  Category: string
+  Tag: string
+  Node: string
+}
+
+let private emitNodeTaglistFile o (graph:Graph) =
+  let fileName = Graph.DeriveMissingName(o.InputFile, ".node.taglist.csv")
+  do
+    let builder = new CsvWriteRowBuilder()
+    let tagCell = builder.AddCell("tag")
+    let categoryCell = builder.AddCell("category")
+    let countCell = builder.AddCell("nodecount")
+    cp $"Saving \fg{fileName}\f0."
+    use cw = new CsvRawWriter(fileName+".tmp")
+    let rowBuffer = builder.Build()
+    rowBuffer |> cw.WriteHeader
+    let ctnsGrouped =
+      seq {
+        for node in graph.Nodes.Values do
+          let metadata = node.Metadata
+          for category in metadata.TagKeys do
+            let ok, tags = category |> metadata.TryGetTags
+            if ok then
+              for tag in tags do
+                yield {
+                  Category = category
+                  Tag = tag
+                  Node = node.Key
+                }
+      }
+      |> Seq.groupBy (fun ctn -> (ctn.Category, ctn.Tag))
+    for ((cat, tag), ctns) in ctnsGrouped do
+      let ctna = ctns |> Seq.toArray
+      cat |> categoryCell.Set
+      tag |> tagCell.Set
+      ctna.Length |> string |> countCell.Set
+      rowBuffer |> cw.WriteRow
+  fileName |> finishFile
+
 let private emitNodesFile o (graph:Graph) =
   let nodesFileName = Graph.DeriveMissingName(o.InputFile, ".nodes.csv")
   do
@@ -172,6 +212,7 @@ let private runCsvExport o =
   graph |> emitNodesFile o
   graph |> emitNodeTagsFile o
   graph |> emitEdgesFile o
+  graph |> emitNodeTaglistFile o
   0
 
 let run args =
