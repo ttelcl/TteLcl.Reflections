@@ -21,7 +21,8 @@ public class TypeModel
   [JsonConstructor]
   public TypeModel()
   {
-    throw new NotImplementedException();
+    // Deserialization is not supported yet
+    throw new NotSupportedException();
   }
 
   /// <summary>
@@ -33,26 +34,23 @@ public class TypeModel
     Name = type.Name;
     Label = type.ToString();
     AssemblyName = type.Assembly.FullName;
-    AssemblyTag = type.Assembly.GetName().Name;
-    //FullName = type.FullName;
-    //AssemblyQualifiedName = type.AssemblyQualifiedName;
+    AssemblyTag = AssemblyString(type.Assembly);
     Visibility = (TypeVisibility)(int)(type.Attributes & TypeAttributes.VisibilityMask);
     IsAbstract = type.IsAbstract;
     IsSealed = type.IsSealed;
     Kind = Categorize(type);
     Generic = CategorizeGeneric(type);
     var declaringType = type.DeclaringType;
-    // DeclaringType = declaringType?.AssemblyQualifiedName ?? declaringType?.FullName ?? declaringType?.Name;
     DeclaringType = declaringType?.ToString();
     DeclaringTypeVisibility =
       declaringType == null
       ? null
       : (TypeVisibility)(int)(declaringType.Attributes & TypeAttributes.VisibilityMask);
-    DeclaringAssembly = declaringType?.Assembly.FullName;
+    DeclaringAssembly = AssemblyString(declaringType?.Assembly);
     var baseType = type.BaseType;
     // BaseType0 = baseType?.AssemblyQualifiedName ?? baseType?.FullName ?? baseType?.Name;
     BaseType = baseType?.ToString();
-    BaseAssembly = baseType?.Assembly.FullName;
+    BaseAssembly = AssemblyString(baseType?.Assembly);
     var interfaces = type.GetInterfaces();
     Interfaces = interfaces.Select(i => i.ToString()).ToList();
   }
@@ -62,13 +60,6 @@ public class TypeModel
   /// </summary>
   [JsonProperty("label")]
   public string Label { get; }
-
-  //// ALWAYS SAME AS LABEL, as far as I can see
-  ///// <summary>
-  ///// The full name (null for generic type parameters)
-  ///// </summary>
-  //[JsonProperty("fullname")]
-  //public string? FullName { get; }
 
   /// <summary>
   /// The visibility bits of the type attributes
@@ -102,34 +93,21 @@ public class TypeModel
   public string Name { get; }
 
   /// <summary>
-  /// The name of the assembly
+  /// The name of the assembly (long version)
   /// </summary>
-  [JsonProperty("assembly")]
+  [JsonProperty("assemblyname")]
   public string? AssemblyName { get; }
 
   /// <summary>
   /// The short assembly name
   /// </summary>
-  [JsonProperty("assemblytag")]
+  [JsonProperty("assembly")]
   public string? AssemblyTag { get; }
-
-  ///// <summary>
-  ///// The assembly qualified name (null for generic type parameters)
-  ///// </summary>
-  //[JsonProperty("qualifiedname")]
-  //public string? AssemblyQualifiedName { get; }
 
   ///// <summary>
   ///// Tell the serializer not to serialize <see cref="Generic"/> if it is null
   ///// </summary>
   //public bool ShouldSerializeGeneric() => Generic != null;
-
-  ///// <summary>
-  ///// The <see cref="AssemblyQualifiedName"/>, <see cref="FullName"/> or <see cref="Name"/>
-  ///// of the base type, whichever is not null. Will be null for the System.Object type.
-  ///// </summary>
-  //[JsonProperty("basetype0")]
-  //public string? BaseType0 { get; }
 
   /// <summary>
   /// The label of the base type (null for System.Object)
@@ -290,5 +268,16 @@ public class TypeModel
       TypeVisibility.NestedPrivate => 7,
       _ => 1000,
     };
+  }
+
+  /// <summary>
+  /// Get the short name for the assembly. In unusual cases this may return null
+  /// even if <paramref name="assembly"/> is not null.
+  /// </summary>
+  /// <param name="assembly"></param>
+  /// <returns></returns>
+  public static string? AssemblyString(Assembly? assembly)
+  {
+    return assembly?.GetName().Name;
   }
 }
