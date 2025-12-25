@@ -39,7 +39,7 @@ let usage focus =
     cp "  \fg-scc\f0\fx                Prune the graph of strongly connected components (and project that back) instead of the whole graph"
     cp ""
   if showSection "filter" then
-    cp "\fographops filter \fg-i \fcinputfile\f0 [\fg-include\f0|\fg-exclude\f0] {\fg-n \fctag\f0} [\fg-o \fcoutputfile\f0]"
+    cp "\fographops filter \fg-i \fcinputfile\f0 [\fg-include\f0|\fg-exclude\f0] {\fg-n \fctag\f0} {\fg-nf \fctagfile.csv\f0} [\fg-o \fcoutputfile\f0]"
     cp "  Create a subgraph keeping (\fg-include\f0) or removing (\fg-exclude\f0) the nodes with the specified \fctag\f0s"
   if showDetails "filter" then
     cp "  \fg-include\f0\fx            Keep the specified nodes, remove all others"
@@ -47,6 +47,8 @@ let usage focus =
     cp "  \fg-n \fctag\f0              The tags used to match node(s) to keep or remove. Any resulting dangling edges are removed."
     cp "  \fx\fx\fx                    Tags can use the \fckey\fo::\fctag\f0 format."
     cp "  \fx\fx\fx                    (to remove nodes by name instead of tag use \fographops prune\f0 instead)"
+    cp "  \fg-nf \fctags.csv\f0        Load tags from a CSV file, using the required 'tag' and optional 'category' columns"
+    cp "  \fx\fx\fx                    You can comment out lines in the CSV file by starting the line with '#'."
     cp ""
   if showSection "prune" then
     cp "\fographops prune \fg-i \fcinputfile\f0 {\fg-e \fcfrom\f0|\fo* \fCto\f0|\fo*\f0} {\fg-n \fcnode\f0} [\fg-o \fcoutputfile\f0]"
