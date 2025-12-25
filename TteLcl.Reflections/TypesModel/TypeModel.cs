@@ -33,8 +33,9 @@ public class TypeModel
     Name = type.Name;
     Label = type.ToString();
     AssemblyName = type.Assembly.FullName;
+    AssemblyTag = type.Assembly.GetName().Name;
     //FullName = type.FullName;
-    AssemblyQualifiedName = type.AssemblyQualifiedName;
+    //AssemblyQualifiedName = type.AssemblyQualifiedName;
     Visibility = (TypeVisibility)(int)(type.Attributes & TypeAttributes.VisibilityMask);
     IsAbstract = type.IsAbstract;
     IsSealed = type.IsSealed;
@@ -107,10 +108,16 @@ public class TypeModel
   public string? AssemblyName { get; }
 
   /// <summary>
-  /// The assembly qualified name (null for generic type parameters)
+  /// The short assembly name
   /// </summary>
-  [JsonProperty("qualifiedname")]
-  public string? AssemblyQualifiedName { get; }
+  [JsonProperty("assemblytag")]
+  public string? AssemblyTag { get; }
+
+  ///// <summary>
+  ///// The assembly qualified name (null for generic type parameters)
+  ///// </summary>
+  //[JsonProperty("qualifiedname")]
+  //public string? AssemblyQualifiedName { get; }
 
   ///// <summary>
   ///// Tell the serializer not to serialize <see cref="Generic"/> if it is null
