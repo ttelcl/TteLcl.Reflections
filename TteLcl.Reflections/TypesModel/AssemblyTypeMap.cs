@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -39,6 +40,34 @@ public class AssemblyTypeMap
   public static AssemblyTypeMap CreateNew()
   {
     return new AssemblyTypeMap(new Dictionary<string, IEnumerable<TypeModel>>());
+  }
+
+  /// <summary>
+  /// Save the <see cref="TypesByAssembly"/> field to a JSON file (without
+  /// this outer wrapper)
+  /// </summary>
+  /// <param name="fileName">
+  /// The file to save to
+  /// </param>
+  /// <param name="flat">
+  /// If false: save <see cref="TypesByAssembly"/> itself, as a JSON object.
+  /// If true: save all types in entries in <see cref="TypesByAssembly"/> as
+  /// one big JSON array (without the index layer)
+  /// </param>
+  public void SaveInnerToJson(string fileName, bool flat)
+  {
+    string json;
+    if(flat)
+    {
+      var list = TypesByAssembly.Values.SelectMany(x => x);
+      json = JsonConvert.SerializeObject(list, Formatting.Indented);
+    }
+    else
+    {
+      json = JsonConvert.SerializeObject(TypesByAssembly, Formatting.Indented);
+    }
+    using var writer = File.CreateText(fileName);
+    writer.WriteLine(json);
   }
 
   /// <summary>

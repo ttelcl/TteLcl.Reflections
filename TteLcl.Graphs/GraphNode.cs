@@ -35,10 +35,7 @@ public class GraphNode: IHasMetadata, IHasKey
     _sources = new Dictionary<string, GraphEdge>(StringComparer.OrdinalIgnoreCase);
     _targets = new Dictionary<string, GraphEdge>(StringComparer.OrdinalIgnoreCase);
     Metadata = new Metadata();
-    if(metadata != null)
-    {
-      Metadata.Import(metadata);
-    }
+    this.ImportMetadata(metadata);
   }
 
   /// <summary>

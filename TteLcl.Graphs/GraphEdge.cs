@@ -19,10 +19,7 @@ public class GraphEdge: IHasMetadata
     Metadata = new Metadata();
     Source=source;
     Target=target;
-    if(metadata != null)
-    {
-      Metadata.Import(metadata);
-    }
+    this.ImportMetadata(metadata);
   }
 
   /// <inheritdoc/>

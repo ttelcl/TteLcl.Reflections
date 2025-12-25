@@ -13,6 +13,8 @@ using System.Threading.Tasks;
 
 using TteLcl.Graphs.Analysis;
 
+using TteLcl.Reflections.AssemblyFiles;
+
 namespace TteLcl.Reflections.Graph;
 
 /// <summary>

@@ -103,11 +103,15 @@ public class GraphAnalyzer
   /// Get the map that maps each node to its 'reach' (the set of nodes reachable from that node,
   /// excluding the node itself). This is calculated on first call, then cached.
   /// </summary>
-  public KeySetMapView GetReachMap(bool skipCircles = false)
+  /// <param name="circularEdges">
+  /// Captures any circular dependency edges that were ignored. If null, circular dependencies
+  /// throw an exception instead.
+  /// </param>
+  public KeySetMapView GetReachMap(KeySetMap? circularEdges)
   {
     if(_reachMap == null)
     {
-      _reachMap = CalculatePowerMap(TargetEdges, skipCircles);
+      _reachMap = CalculatePowerMap(TargetEdges, circularEdges);
     }
     return _reachMap;
   }
@@ -116,11 +120,15 @@ public class GraphAnalyzer
   /// Get the map that maps each node to its 'reach' (the set of nodes reachable from that node,
   /// excluding the node itself). This is calculated on first call, then cached.
   /// </summary>
-  public KeySetMapView GetDomainMap(bool skipCircles = false)
+  /// <param name="circularEdges">
+  /// Captures any circular dependency edges that were ignored. If null, circular dependencies
+  /// throw an exception instead.
+  /// </param>
+  public KeySetMapView GetDomainMap(KeySetMap? circularEdges)
   {
     if(_domainMap == null)
     {
-      _domainMap = CalculatePowerMap(SourceEdges, skipCircles);
+      _domainMap = CalculatePowerMap(SourceEdges, circularEdges);
     }
     return _domainMap;
   }
@@ -134,18 +142,21 @@ public class GraphAnalyzer
   /// for each node.
   /// </summary>
   /// <param name="edges"></param>
-  /// <param name="skipCircles"></param>
+  /// <param name="circularEdges">
+  /// Captures any circular dependency edges that were ignored. If null, circular dependencies
+  /// throw an exception instead.
+  /// </param>
   /// <returns></returns>
   public KeySetMapView CalculatePowerMap(
     KeySetMapView edges,
-    bool skipCircles = false)
+    KeySetMap? circularEdges)
   {
     var pm = new KeySetMap();
     var guard = new KeySet();
     foreach(var seed in _nodes)
     {
       // calculate missing powermap entries starting from seed
-      FillPowerSet(seed, edges, pm, guard, skipCircles);
+      FillPowerSet(seed, edges, pm, guard, circularEdges);
     }
     return new KeySetMapView(pm);
   }
@@ -166,9 +177,9 @@ public class GraphAnalyzer
   /// for a seed that is in this set indicates a circular dependency in
   /// <paramref name="edges"/>, causing an abort.
   /// </param>
-  /// <param name="skipCircles">
-  /// If true, stop recusrion when detecting a circular dependency instead
-  /// of aborting. This breaks dependency cycles at a "random" point
+  /// <param name="circularEdges">
+  /// Captures any circular dependency edges that were ignored. If null, circular dependencies
+  /// throw an exception instead.
   /// </param>
   /// <returns></returns>
   private KeySet FillPowerSet(
@@ -176,18 +187,20 @@ public class GraphAnalyzer
     KeySetMapView edges,
     KeyMap<KeySet> powerMap,
     KeySet circularGuard,
-    bool skipCircles)
+    KeySetMap? circularEdges)
   {
     if(!powerMap.TryGetValue(seed, out var powerSet))
     {
-      if(circularGuard.Contains(seed))
+      if(circularGuard.Contains(seed)) 
       {
-        if(skipCircles)
-        {
-          powerSet = new KeySet(edges[seed]);
-          powerMap[seed] = powerSet;
-          return powerSet;
-        }
+        // should have been detected already!
+
+        //if(skipCircles)
+        //{
+        //  powerSet = new KeySet(edges[seed]);
+        //  powerMap[seed] = powerSet;
+        //  return powerSet;
+        //}
         var guardSet = String.Join(", ", circularGuard);
         throw new InvalidOperationException(
           $"Found a circular dependency while processing '{seed}'. Guard set = {guardSet}");
@@ -196,10 +209,24 @@ public class GraphAnalyzer
       powerSet = new KeySet();
       foreach(var next in edges[seed])
       {
-        powerSet.Add(next);
-        // recurse
-        var nextSet = FillPowerSet(next, edges, powerMap, circularGuard, skipCircles);
-        powerSet.UnionWith(nextSet);
+        if(circularGuard.Contains(next))
+        {
+          if(circularEdges == null)
+          {
+            var guardSet = String.Join(", ", circularGuard);
+            throw new InvalidOperationException(
+              $"Encountered circular dependency while processing '{seed}' -> '{next}'. Guard set = {guardSet}");
+          }
+          circularEdges.AddPair(seed, next);
+          // Do NOT add to powerSet and do NOT recurse.
+        }
+        else
+        {
+          powerSet.Add(next);
+          // Recurse
+          var nextSet = FillPowerSet(next, edges, powerMap, circularGuard, circularEdges);
+          powerSet.UnionWith(nextSet);
+        }
       }
       powerMap[seed] = powerSet;
       circularGuard.Remove(seed);
@@ -207,5 +234,107 @@ public class GraphAnalyzer
     return powerSet;
   }
 
+
+  /// <summary>
+  /// Calculate the set of strongly connected components of this graph
+  /// </summary>
+  /// <param name="namePrefix">
+  /// The prefix to use when constructing Strongly Connected Component names,
+  /// or null to generate names based on a random node picked from the component
+  /// </param>
+  /// <returns>
+  /// A <see cref="StronglyConnectedComponentsResult"/> describing the result
+  /// </returns>
+  public StronglyConnectedComponentsResult StronglyConnectedComponents(
+    string? namePrefix = "SCC-")
+  {
+
+    var sccAlgorithm = new StrongConnectedComponentAlgorithm(this);
+    var raw = sccAlgorithm.Run();
+    return new StronglyConnectedComponentsResult(raw, namePrefix);
+  }
+
+  /// <summary>
+  /// Implements https://en.wikipedia.org/wiki/Tarjan%27s_strongly_connected_components_algorithm
+  /// </summary>
+  private sealed class StrongConnectedComponentAlgorithm
+  {
+    private readonly GraphAnalyzer _graph;
+    private int _index = 0;
+    private readonly Stack<string> _stack = new Stack<string>();
+    private readonly KeyMap<int> _nodeIndex = new KeyMap<int>();
+    private readonly KeyMap<int> _nodeLowlink = new KeyMap<int>();
+    private readonly KeySet _onStack = new KeySet();
+    private readonly List<KeySet> _components = new List<KeySet>();
+
+    public StrongConnectedComponentAlgorithm(
+      GraphAnalyzer graph)
+    {
+      _graph = graph;
+    }
+
+    public List<KeySet> Run()
+    {
+      foreach(var v in _graph.Nodes)
+      {
+        if(!_nodeIndex.ContainsKey(v))
+        {
+          StrongConnect(v);
+        }
+      }
+      // The components are generated in toplogically sorted order - but the wrong way around.
+      // Before returning: reverse them
+      _components.Reverse();
+      return _components;
+    }
+
+    private void StrongConnect(string v)
+    {
+      // Set the depth index for v to the smallest unused index
+      _nodeIndex[v] = _index;
+      _nodeLowlink[v] = _index;
+      _index++;
+      _stack.Push(v);
+      _onStack.Add(v);
+      foreach(var w in _graph.TargetEdges[v])
+      {
+        var vLow = _nodeLowlink[v];
+        if(!_nodeIndex.ContainsKey(w))
+        {
+          // Successor w has not yet been visited; recurse on it
+          StrongConnect(w);
+          var wLow = _nodeLowlink[w];
+          if(wLow < vLow)
+          {
+            _nodeLowlink[v] = wLow;
+          }
+        }
+        else if(_onStack.Contains(w))
+        {
+          // Successor w is in stack S and hence in the current SCC
+          // If w is not on stack, then (v, w) is an edge pointing to an SCC already found and must be ignored
+          var wIndex = _nodeIndex[w];
+          if(wIndex < vLow)
+          {
+            _nodeLowlink[v] = wIndex;
+          }
+        }
+      }
+      if(_nodeLowlink[v] == _nodeIndex[v])
+      {
+        // If v is a root node, pop the stack and generate an SCC
+        var scc = new KeySet();
+        var done = false;
+        while(!done)
+        {
+          var w = _stack.Pop();
+          _onStack.Remove(w);
+          scc.Add(w);
+          done = w == v;
+        }
+        _components.Add(scc);
+      }
+    }
+  }
 
 }

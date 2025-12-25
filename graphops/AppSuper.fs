@@ -20,6 +20,7 @@ type private Options = {
   OutputFile: string
   Key: SuperKey
   PrefixSpec: (string * int) option
+  NoNodes: bool
 }
 
 let private runSuper o =
@@ -43,7 +44,7 @@ let private runSuper o =
     for kvp in groupMap |> Seq.sortBy (fun kvp -> kvp.Key) do
       cp $"\fb{kvp.Value.Count,4}\f0 '{kvp.Key}\f0'"
     let classifier = NodeMapClassifier.FromNodeClassificationMap(groupMap)
-    let superGraph = graph.SuperGraph(classifier)
+    let superGraph = graph.SuperGraph(classifier, (o.NoNodes |> not))
     match o.PrefixSpec with
     | Some(separator, maxcount) ->
       for node in superGraph.Nodes.Values do
@@ -84,6 +85,8 @@ let run args =
     | "-prefix" :: separator :: maxcount :: rest ->
       let n = maxcount |> Int32.Parse
       rest |> parseMore {o with PrefixSpec = (separator, n) |> Some}
+    | "-nonodes" :: rest ->
+      rest |> parseMore {o with NoNodes = true}
     | [] ->
       if o.InputFile |> String.IsNullOrEmpty then
         cp "\foNo input file (\fg-i\fo) given\f0."
@@ -108,6 +111,7 @@ let run args =
     OutputFile = null
     Key = SuperKey.Propname("category")
     PrefixSpec = None
+    NoNodes = false
   }
   match oo with
   | Some(o) ->

@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 
 using Newtonsoft.Json;
 
+using TteLcl.Reflections.AssemblyFiles;
+
 namespace TteLcl.Reflections.Graph;
 
 /// <summary>

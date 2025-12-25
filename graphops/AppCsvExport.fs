@@ -19,6 +19,7 @@ type private Options = {
   InputFile: string
   NodePropertyColumns: string list
   NodePropertyAuto: bool
+  PartitionInOutProp: string
 }
 
 let private emitEdgesFile o (graph:Graph) =
@@ -89,6 +90,7 @@ let private emitNodeTagsFile o (graph:Graph) =
 let private emitNodesFile o (graph:Graph) =
   let nodesFileName = Graph.DeriveMissingName(o.InputFile, ".nodes.csv")
   do
+    let doPio = o.PartitionInOutProp |> String.IsNullOrEmpty |> not
     let allPropertyNames = graph.Nodes.Values.AllPropertyNames()
     let allTagKeys = graph.Nodes.Values.AllTagKeys()
     let nodePropertyNames =
@@ -101,6 +103,12 @@ let private emitNodesFile o (graph:Graph) =
     let builder = new CsvWriteRowBuilder()
     let nameCell = builder.AddCell("node")
     let kindCell = builder.AddCell("kind")
+    let targetCountCell = builder.AddCell("#tgt")
+    let sourceCountCell = builder.AddCell("#src")
+    let inTgtCell = if doPio then builder.AddCell("#inTgt") else null
+    let inSrcCell = if doPio then builder.AddCell("#inSrc") else null
+    let exTgtCell = if doPio then builder.AddCell("#exTgt") else null
+    let exSrcCell = if doPio then builder.AddCell("#exSrc") else null
     let propCells =
       nodePropertyNames
       |> List.map (fun propName -> builder.AddCell(propName))
@@ -124,6 +132,31 @@ let private emitNodesFile o (graph:Graph) =
     for node in graph.Nodes.Values do
       node.Key |> nameCell.Set
       node.Kind.ToString() |> kindCell.Set
+      let tgtCount = node.Targets.Count
+      let srcCount = node.Sources.Count
+      if doPio then
+        let nodeProp = node.Metadata.GetPropertyOrDefault(o.PartitionInOutProp)
+        let internTargetCount =
+          node.Targets.Values
+          |> Seq.where (fun edge -> edge.Target.Metadata.GetPropertyOrDefault(o.PartitionInOutProp) = nodeProp)
+          |> Seq.length
+        let externTargetCount = tgtCount - internTargetCount
+        let internSourceCount =
+          node.Sources.Values
+          |> Seq.where (fun edge -> edge.Source.Metadata.GetPropertyOrDefault(o.PartitionInOutProp) = nodeProp)
+          |> Seq.length
+        let externSourceCount = srcCount - internSourceCount
+        internTargetCount.ToString() |> inTgtCell.Set
+        externTargetCount.ToString() |> exTgtCell.Set
+        internSourceCount.ToString() |> inSrcCell.Set
+        externSourceCount.ToString() |> exSrcCell.Set
+        // Add properties to edges: internal target count of the source node and internal source count of the target node
+        for edge in node.Targets.Values do
+          edge.Metadata.SetProperty("#inTgt(from)", internTargetCount.ToString())
+        for edge in node.Sources.Values do
+          edge.Metadata.SetProperty("#inSrc(to)", internSourceCount.ToString())
+      tgtCount.ToString() |> targetCountCell.Set
+      srcCount.ToString() |> sourceCountCell.Set
       let metadata = node.Metadata
       for propCell in propCells do
         propCell.Name |> metadata.GetPropertyOrDefault |> propCell.Set
@@ -156,6 +189,8 @@ let run args =
       rest |> parseMore {o with NodePropertyAuto = true}
     | "-np" :: propname :: rest ->
       rest |> parseMore {o with NodePropertyColumns = propname :: o.NodePropertyColumns}
+    | "-pio" :: propname :: rest ->
+      rest |> parseMore {o with PartitionInOutProp = propname}
     | [] ->
       if o.InputFile |> String.IsNullOrEmpty then
         cp "\foNo input file (\fg-i\fo) given\f0."
@@ -169,6 +204,7 @@ let run args =
     InputFile = null
     NodePropertyColumns = []
     NodePropertyAuto = false
+    PartitionInOutProp = null
   }
   match oo with
   | Some(o) ->

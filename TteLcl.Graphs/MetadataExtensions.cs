@@ -71,15 +71,90 @@ public static class MetadataExtensions
   }
 
   /// <summary>
-  /// Import metadata from another metadata owner
+  /// Import metadata copied from another metadata owner
   /// </summary>
   /// <param name="owner"></param>
   /// <param name="source"></param>
   /// <param name="tags"></param>
   /// <param name="properties"></param>
-  public static void ImportMetadata(this IHasMetadata owner, IHasMetadata source, bool tags=true, bool properties=true)
+  public static void ImportMetadata(this IHasMetadata owner, IHasMetadata source, bool tags = true, bool properties = true)
   {
     owner.Metadata.Import(source.Metadata, tags, properties);
+  }
+  
+  /// <summary>
+  /// Import metadata into the metadata of <paramref name="owner"/>
+  /// </summary>
+  /// <param name="owner">
+  /// The owner of the metadata to modifiy
+  /// </param>
+  /// <param name="metadata">
+  /// The metadata to import into the <paramref name="owner"/>'s metadata, or null 
+  /// to not import anything.
+  /// </param>
+  /// <param name="tags"></param>
+  /// <param name="properties"></param>
+  public static void ImportMetadata(this IHasMetadata owner, Metadata? metadata, bool tags = true, bool properties = true)
+  {
+    if(metadata != null)
+    {
+      owner.Metadata.Import(metadata, tags, properties);
+    }
+  }
+
+  /// <summary>
+  /// Import metadata. This is an extension method nearly equal to the underlying <see cref="Metadata.Import(Metadata, bool, bool)"/>,
+  /// but allows the imported metadata to be null (to skip the operation), making the API smoother for many use cases.
+  /// </summary>
+  /// <param name="target"></param>
+  /// <param name="metadata"></param>
+  /// <param name="tags"></param>
+  /// <param name="properties"></param>
+  public static void ImportFrom(this Metadata target, Metadata? metadata, bool tags = true, bool properties = true)
+  {
+    if(metadata != null)
+    {
+      target.Import(metadata, tags, properties);
+    }
+  }
+
+  /// <summary>
+  /// Import the potentially-not-existing <paramref name="metadata"/> into the existing <paramref name="target"/> metadata
+  /// </summary>
+  /// <param name="metadata">
+  /// The metadata to import into <paramref name="target"/>, or null to ignore the call
+  /// </param>
+  /// <param name="target">
+  /// The target metadata object to modify
+  /// </param>
+  /// <param name="tags"></param>
+  /// <param name="properties"></param>
+  public static void ImportInto(this Metadata? metadata, Metadata target, bool tags = true, bool properties = true)
+  {
+    if(metadata != null)
+    {
+      target.Import(metadata, tags, properties);
+    }
+  }
+
+  /// <summary>
+  /// Import the potentially-not-existing <paramref name="metadata"/> into the metadata of the
+  /// existing metadata owner <paramref name="target"/>
+  /// </summary>
+  /// <param name="metadata">
+  /// The metadata to import into <paramref name="target"/>, or null to ignore the call
+  /// </param>
+  /// <param name="target">
+  /// The owner of the target metadata object to modify
+  /// </param>
+  /// <param name="tags"></param>
+  /// <param name="properties"></param>
+  public static void ImportInto(this Metadata? metadata, IHasMetadata target, bool tags = true, bool properties = true)
+  {
+    if(metadata != null)
+    {
+      target.Metadata.Import(metadata, tags, properties);
+    }
   }
 
   /// <summary>
@@ -88,7 +163,7 @@ public static class MetadataExtensions
   /// <param name="owners"></param>
   /// <returns></returns>
   public static IReadOnlyCollection<string> AllPropertyNames<T>(this IEnumerable<T> owners)
-    where T: IHasMetadata
+    where T : IHasMetadata
   {
     return Metadata.AllPropertyNames(owners.Select(owner => owner.Metadata));
   }

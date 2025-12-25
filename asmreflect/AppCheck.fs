@@ -6,18 +6,25 @@ open System.Reflection
 
 open Newtonsoft.Json
 
-open TteLcl.Reflections
+open TteLcl.Csv
+open TteLcl.Csv.Core
+
+open TteLcl.Reflections.AssemblyFiles
 open TteLcl.Reflections.Graph
 open TteLcl.Reflections.TypesModel
 
 open ColorPrint
 open CommonTools
 
+type Dictionary<'k,'v> = System.Collections.Generic.Dictionary<'k,'v>
+
 type private Options = {
   Assemblies: string list
   Check: bool
   Dependencies: string
   TypeAssemblies: string list
+  TypeOutFile: string
+  Rules: SubmoduleRules
 }
 
 type private LoadState = {
@@ -29,7 +36,7 @@ type private LoadState = {
 }
 
 let private buildFileCollection o =
-  let afc = new AssemblyFileCollection()
+  let afc = new AssemblyFileCollection(o.Rules)
   for a in o.Assemblies do
     let tag = Path.GetFileNameWithoutExtension(a)
     cp $"Adding \fg{a}\f0..."
@@ -102,6 +109,57 @@ let private initLoadState o afc (mlc: MetadataLoadContext) =
     PostLoadAssemblies = postLoadAssemblies
   }
 
+let private assemblyUsage o loadState =
+  let afc = loadState.Afc
+  let mlc = loadState.Mlc
+  cp "Analyzing assembly usage"
+  let usedAssemblies =
+    mlc.GetAssemblies()
+    |> Seq.filter (fun asm -> (asm.Location |> String.IsNullOrEmpty |> not) && (asm.Location |> File.Exists)) // skip ghosts
+    |> Seq.toList
+  cp $"\fb{usedAssemblies.Length}\f0 of \fc{afc.AssembliesByName.Count}\f0 candidates in use"
+  let afcUsage =
+    afc.ReportRegistrationUse(usedAssemblies)
+    |> Seq.toArray
+    |> Array.sortBy (fun afu -> (afu.Module, afu.IsUsed |> not, afu.AssemblyTag.ToLowerInvariant(), afu.AssemblyVersion, afu.FileName))
+  let afcUsageFileName = $"{o.Dependencies}.registration-usage.json"
+  do
+    let afuByModuleAndUse =
+      afcUsage
+      |> Array.groupBy (fun afu -> afu.Module)
+      |> Array.map (fun (m,afus) -> (m, afus |> Array.groupBy (fun afu -> if afu.IsUsed then "used" else "unused")))
+    // Convert afuByModuleAndUse to something serializable
+    let afuMap = new Dictionary<string,Dictionary<string,AssemblyFileUsage array>>()
+    for (m, mg) in afuByModuleAndUse do
+      let nest = new Dictionary<string, AssemblyFileUsage array>()
+      afuMap.Add(m, nest)
+      for (u, ug) in mg do
+        nest.Add(u, ug)
+    use w = afcUsageFileName |> startFile
+    let json = JsonConvert.SerializeObject(afuMap, Formatting.Indented)
+    w.WriteLine(json)
+  afcUsageFileName |> finishFile
+  let afuFileName = $"{o.Dependencies}.registration-usage.csv"
+  do
+    let builder = new CsvWriteRowBuilder()
+    let moduleCell = builder.AddCell("module")
+    let usedCell = builder.AddCell("used")
+    let assemblyCell = builder.AddCell("assembly")
+    let versionCell = builder.AddCell("version")
+    let fileCell = builder.AddCell("file")
+    let rowBuffer = builder.Build()
+    cp $"Saving \fg{afuFileName}\f0."
+    use cw = new CsvRawWriter(afuFileName+".tmp")
+    rowBuffer |> cw.WriteHeader
+    for afu in afcUsage do
+      afu.Module |> moduleCell.Set
+      (if afu.IsUsed then "used" else "unused") |> usedCell.Set
+      afu.AssemblyTag |> assemblyCell.Set
+      (if afu.AssemblyVersion = null then "" else afu.AssemblyVersion) |> versionCell.Set
+      afu.FileName |> fileCell.Set
+      rowBuffer |> cw.WriteRow
+  afuFileName |> finishFile
+
 let private loadDependencyGraph o loadState =
   let afc = loadState.Afc
   let mlc = loadState.Mlc
@@ -147,6 +205,7 @@ let private loadDependencyGraph o loadState =
     let json = JsonConvert.SerializeObject(jgraph, Formatting.Indented)
     w.WriteLine(json)
   fileName |> finishFile
+  assemblyUsage o loadState
 
 let typeColor (t:Type) =
   if t.IsNestedPublic then
@@ -171,28 +230,44 @@ let typeColor (t:Type) =
 let private scanTypes o loadState =
   let afc = loadState.Afc
   let mlc = loadState.Mlc
-  for tan in o.TypeAssemblies do
-    cp $"Loading \fy{tan}\f0."
+  let typeAssemblies = o.TypeAssemblies
+  let outName =
+    if o.TypeOutFile.EndsWith(".types.json", StringComparison.OrdinalIgnoreCase) |> not then
+      o.TypeOutFile + ".types.json"
+    else
+      o.TypeOutFile
+  let typeMap = AssemblyTypeMap.CreateNew()
+  for tan in typeAssemblies do
+    if verbose then
+      cp $"Loading \fy{tan}\f0."
     let a = mlc.LoadFromAssemblyName(tan)
-    cp $"    Loaded \fg{a.Location}\f0."
+    if verbose then
+      cp $"    Loaded \fg{a.Location}\f0."
     let types = a.GetTypes()
     for t in types do
-      let color = t |> typeColor
-      cp $"  {color}{t.FullName}\f0 ({t.Name})."
+      if verbose then
+        let color = t |> typeColor
+        cp $"  {color}{t.FullName}\f0 ({t.Name})."
       let baseType = t.BaseType
-      if baseType <> null then
+      if verbose && baseType <> null then
         let baseColor = baseType |> typeColor
         let baseName = if baseType.FullName |> String.IsNullOrEmpty then baseType.Name+" \fr!!!" else baseType.FullName
         cp $"    : {baseColor}{baseName}\f0 ({baseType.Assembly.FullName})"
-    let typeList = AssemblyTypeList.FromAssembly(a)
-    let fileName = $"{a.GetName().Name}.types.json"
-    cp $"Saving \fg{fileName}\f0."
-    let json = JsonConvert.SerializeObject(typeList, Formatting.Indented)
-    File.WriteAllText(fileName+".tmp", json)
-    fileName |> finishFile
-  if verbose then
-    cp "Assemblies after type loading:"
-    mlc.GetAssemblies() |> assemblyDiagnostics afc
+    //let typeList = AssemblyTypeList.FromAssembly(a)
+    typeMap.AddAssembly(a)
+    cp $"Added \fb{types.Length}\f0 types from \fy{a.GetName()}\f0."
+    //let fileName = $"{a.GetName().Name}.types.json"
+    //cp $"Saving \fg{fileName}\f0."
+    //let json = JsonConvert.SerializeObject(typeList, Formatting.Indented)
+    //File.WriteAllText(fileName+".tmp", json)
+    //fileName |> finishFile
+  let typeCount = typeMap.TypesByAssembly.Values |> Seq.sumBy (fun list -> list.Count)
+  cp $"Saving \fb{typeCount}\f0 types to \fg{outName}\f0."
+  typeMap.SaveInnerToJson(outName + ".tmp", true)
+  outName |> finishFile
+  //if verbose then
+  //  cp "Assemblies after type loading:"
+  //  mlc.GetAssemblies() |> assemblyDiagnostics afc
 
 let private runCheck o =
   let afc = o |> buildFileCollection
@@ -231,9 +306,17 @@ let run args =
       rest |> parseMore {o with Dependencies = filetag}
     | "-types" :: ta :: rest ->
       rest |> parseMore {o with TypeAssemblies = ta :: o.TypeAssemblies}
+    | "-typo" :: file :: rest ->
+      rest |> parseMore {o with TypeOutFile = file}
+    | "-rule" :: m :: prefix :: rest ->
+      o.Rules.AddRule(m, prefix) |> ignore
+      rest |> parseMore o
     | [] ->
       if o.Assemblies |> List.isEmpty then
         cp "\foNo assembly arguments (\fg-a\fo) given\f0."
+        None
+      elif (o.TypeAssemblies |> List.isEmpty |> not) && (o.TypeOutFile |> String.IsNullOrEmpty) then
+        cp "\frMissing \fg-typo\fr argument. \f0(\forequired when any \fy-types\fo is present\f0)"
         None
       else
         {o with Assemblies = o.Assemblies |> List.rev; TypeAssemblies = o.TypeAssemblies |> List.rev} |> Some
@@ -245,6 +328,8 @@ let run args =
     Check = false
     Dependencies = null
     TypeAssemblies = []
+    TypeOutFile = null
+    Rules = new SubmoduleRules()
   }
   match oo with
   | Some(o) ->

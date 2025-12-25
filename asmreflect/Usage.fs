@@ -11,6 +11,9 @@ let usage focus =
   cp "\fg-check\f0\fx           Check and report in greater detail"
   cp "\fg-deps \fctag\f0        Analyze dependencies, use \fctag\f0 to construct output file names"
   cp "\fg-types \fcassembly\f0  Export type information the specified assemblies"
+  cp "\fg-types \fo@\fctag\f0      Export type information in all assemblies matching the given tag(s)"
+  cp "\fg-typo \fcfile.types.json\f0 The output file collecting all \fg-types\f0 output"
+  cp "\fg-rule \fcmodule \fbsuffix\f0 Add a submodule generating rule modifying \fcmodule\f0 if the assembly starts with the prefix derived from the module \fbsuffix\f0."
   cp "\fg-v \f0        \fx      Verbose mode"
 
 

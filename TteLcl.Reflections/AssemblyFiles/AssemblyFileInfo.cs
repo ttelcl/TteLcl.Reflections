@@ -12,7 +12,7 @@ using System.Reflection.Metadata;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace TteLcl.Reflections;
+namespace TteLcl.Reflections.AssemblyFiles;
 
 /// <summary>
 /// Caches information about a potential assembly file
@@ -35,9 +35,18 @@ public sealed class AssemblyFileInfo: IEquatable<AssemblyFileInfo>
   }
 
   /// <summary>
-  /// The full name of the file
+  /// The full name of the file. Used as the sole identifying information in the
+  /// <see cref="IEquatable{AssemblyFileInfo}"/> implementation
   /// </summary>
   public string FileName { get; }
+
+  /// <summary>
+  /// The assumed short name of the assembly, based on the short name without extension
+  /// of <see cref="FileName"/>. This is what identifies items in some APIs in
+  /// <see cref="AssemblyFileCollection"/>, such as <see cref="AssemblyFileCollection.AssembliesByName"/>
+  /// and <see cref="AssemblyFileCollection.AssemblyKeys"/>.
+  /// </summary>
+  public string AssumedAssemblyKey => Path.GetFileNameWithoutExtension(FileName);
 
   /// <summary>
   /// True if this file is known to be an assembly. False if not an assembly,
@@ -117,6 +126,6 @@ public sealed class AssemblyFileInfo: IEquatable<AssemblyFileInfo>
   /// <returns></returns>
   public override int GetHashCode()
   {
-    return StringComparer.Ordinal.GetHashCode(FileName);
+    return StringComparer.OrdinalIgnoreCase.GetHashCode(FileName);
   }
 }

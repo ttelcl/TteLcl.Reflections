@@ -16,7 +16,7 @@ using System.Threading.Tasks;
 using TteLcl.Reflections.ConfigurationFiles;
 using TteLcl.Reflections.Graph;
 
-namespace TteLcl.Reflections;
+namespace TteLcl.Reflections.AssemblyFiles;
 
 /// <summary>
 /// Builds a collection of assembly file paths, for passing on to the
@@ -35,13 +35,14 @@ public class AssemblyFileCollection
   /// <summary>
   /// Create a new <see cref="AssemblyFileCollection"/>
   /// </summary>
-  public AssemblyFileCollection(LoadSystem loadSystem = LoadSystem.Undefined)
+  public AssemblyFileCollection(SubmoduleRules? rules = null, LoadSystem loadSystem = LoadSystem.Undefined)
   {
     _assemblyFiles = new Dictionary<string, HashSet<AssemblyFileInfo>>(StringComparer.OrdinalIgnoreCase);
     _assemblyFilesView = new Dictionary<string, IReadOnlySet<AssemblyFileInfo>>(StringComparer.OrdinalIgnoreCase);
     _assemblyTags = new Dictionary<AssemblyFileInfo, HashSet<string>>();
     _assemblyTagsView = new Dictionary<AssemblyFileInfo, IReadOnlySet<string>>();
     LoadSystem = loadSystem;
+    SubmoduleNamingRules = rules ?? new SubmoduleRules();
   }
 
   /// <summary>
@@ -55,6 +56,11 @@ public class AssemblyFileCollection
   public BitMode BitMode { get; private set; }
 
   /// <summary>
+  /// Rules that can potentially upgrade a generated module name to a submodule name
+  /// </summary>
+  public SubmoduleRules SubmoduleNamingRules { get; }
+
+  /// <summary>
   /// Enumerate the distinct <see cref="AssemblyFileInfo"/> objects cached in this
   /// collection. Equivalent to <c>AsseemblyTags.SelectMany(tag => FindAssemblyCandidates(tag))</c>
   /// (but implemented more efficiently)
@@ -66,16 +72,17 @@ public class AssemblyFileCollection
   /// Enumerate the list of distinct "assembly tags" in this collection. An assembly tag
   /// is the potential name of an assembly as derived from an assembly file. It is possible
   /// that this is not a valid assembly name at all. Additionally, casing may be incorrect.
+  /// (In <see cref="AssemblyFileInfo"/> these are exposed as <see cref="AssemblyFileInfo.AssumedAssemblyKey"/>)
   /// </summary>
   public IReadOnlyCollection<string> AssemblyKeys => _assemblyFiles.Keys;
 
   /// <summary>
-  /// A view on the assemblies in this collection, grouped by assumed assembly name
+  /// A view on the assemblies in this collection, grouped by <see cref="AssemblyFileInfo.AssumedAssemblyKey"/>
   /// </summary>
   public IReadOnlyDictionary<string, IReadOnlySet<AssemblyFileInfo>> AssembliesByName => _assemblyFilesView;
 
   /// <summary>
-  /// Mapping from <see cref="AssemblyFileInfo"/> to the set of tag strings.
+  /// Mapping from <see cref="AssemblyFileInfo"/> (full name) to the set of tag strings.
   /// </summary>
   public IReadOnlyDictionary<AssemblyFileInfo, IReadOnlySet<string>> AssemblyTags => _assemblyTagsView;
 
@@ -107,7 +114,8 @@ public class AssemblyFileCollection
     }
     foreach(var tag in tags)
     {
-      tagset.Add(tag);
+      var upgradedTag = SubmoduleNamingRules.ApplyIfmatch(tag, assumedName);
+      tagset.Add(upgradedTag);
     }
     return added;
 
@@ -135,7 +143,7 @@ public class AssemblyFileCollection
   }
 
   /// <summary>
-  /// Return the assemblies that have the given tag
+  /// Return the assemblies that have the given string as one of their tags
   /// </summary>
   public IReadOnlySet<AssemblyFileInfo> GetAssembliesByTag(string tag)
   {
@@ -152,7 +160,7 @@ public class AssemblyFileCollection
   /// '<paramref name="assemblyName"/>' (case insensitively)
   /// </summary>
   /// <param name="assemblyName">
-  /// The name to search for
+  /// The name to search for (to match <see cref="AssemblyFileInfo.AssumedAssemblyKey"/>)
   /// </param>
   /// <param name="assemblyFileInfos">
   /// The set of <see cref="AssemblyFileInfo"/>s found (or null if not found)
@@ -353,12 +361,69 @@ public class AssemblyFileCollection
     [NotNullWhen(true)] out AssemblyFileInfo? info)
   {
     var file = assembly.Location;
-    if(String.IsNullOrEmpty(file))
+    if(string.IsNullOrEmpty(file))
     {
       info = null;
       return false;
     }
     return TryFindByFile(file, out info);
+  }
+
+  /// <summary>
+  /// Return a report on registered potential assembly file registrations and their actual use
+  /// </summary>
+  /// <param name="usedAssemblies"></param>
+  /// <returns>
+  /// A mapping of short assembly tags to <see cref="AssemblyFileUsage"/> records
+  /// </returns>
+  /// <exception cref="InvalidOperationException"></exception>
+  public IReadOnlyList<AssemblyFileUsage> ReportRegistrationUse(
+    IEnumerable<Assembly> usedAssemblies)
+  {
+    var usedRegistrations = new Dictionary<AssemblyFileInfo, AssemblyName>();
+    foreach(var usedAssembly in usedAssemblies)
+    {
+      if(TryFindByAssembly(usedAssembly, out var usedInfo))
+      {
+        usedRegistrations.Add(usedInfo, usedAssembly.GetName());
+      }
+      else
+      {
+        throw new InvalidOperationException(
+          $"Unregistered assembly encountered: {usedAssembly.FullName ?? "???"}");
+      }
+    }
+    var result = new List<AssemblyFileUsage>();
+    foreach(var kvp in _assemblyFiles)
+    {
+      foreach(var registration in kvp.Value)
+      {
+        var used = usedRegistrations.TryGetValue(registration, out var assemblyName);
+        if(!_assemblyTags.TryGetValue(registration, out var tags))
+        {
+          throw new InvalidOperationException(
+            $"No tags defined for assembly registration '{registration.FileName}'");
+        }
+        if(tags.Count != 1)
+        {
+          throw new InvalidOperationException(
+            $"Expecting exactly 1 tag but found {tags.Count} for '{registration.FileName}'");
+        }
+        var module = tags.First();
+        var version =
+          used
+          ? assemblyName!.Version ?? new Version()
+          : null;
+        var usage = new AssemblyFileUsage(
+          used,
+          kvp.Key,
+          module,
+          registration.FileName,
+          version?.ToString());
+        result.Add(usage);
+      }
+    }
+    return result;
   }
 
   /// <summary>

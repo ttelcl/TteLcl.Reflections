@@ -170,7 +170,7 @@ public class Metadata: IHasMetadata
   /// Get the collection of "unkeyed tags". Those are just keyed tags with
   /// a key that is an empty string.
   /// </summary>
-  public IReadOnlySet<string> Tags => this[""];
+  public HashSet<string> Tags => this[""];
 
   /// <summary>
   /// The set of tag keys, including the default key.
@@ -195,7 +195,7 @@ public class Metadata: IHasMetadata
   /// Import metadata from another metadata object
   /// </summary>
   /// <param name="source">
-  /// The object to import from
+  /// The object to import from.
   /// </param>
   /// <param name="tags">
   /// If true, then import all tags (using the same keys)

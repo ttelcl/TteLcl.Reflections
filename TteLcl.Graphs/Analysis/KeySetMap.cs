@@ -104,4 +104,57 @@ public class KeySetMap: KeyMap<KeySet>, IDictionary<string, KeySet>, IReadOnlyDi
     }
   }
 
+  /// <summary>
+  /// Adds <paramref name="value"/> to the string set for the given <paramref name="key"/>
+  /// (adding that key set if necessary).
+  /// Returns true if it was added, false if it already existed
+  /// </summary>
+  public bool AddPair(string key, string value)
+  {
+    if(!TryGetValue(key, out var map))
+    {
+      map = new KeySet();
+      Add(key, map);
+    }
+    return map.Add(value);
+  }
+
+  /// <summary>
+  /// Remove <paramref name="value"/> from the key set for the given <paramref name="key"/>.
+  /// If <paramref name="prune"/> is true and after removal the key set is empty,
+  /// the key set itself is removed. Note that that even happens if the the key set was
+  /// empty to begin with (and thus removal failed)
+  /// </summary>
+  /// <param name="key">
+  /// The key for the <see cref="KeySet"/> to remove <paramref name="value"/> from.
+  /// </param>
+  /// <param name="value">
+  /// The value to remove
+  /// </param>
+  /// <param name="prune">
+  /// Default true. If true, the key set for key <paramref name="key"/> is removed if
+  /// it is empty after the removal (or was empty to begin with)
+  /// </param>
+  /// <returns>
+  /// True if the key existed and was removed.
+  /// </returns>
+  public bool RemovePair(string key, string value, bool prune = true)
+  {
+    if(TryGetValue(key, out var map))
+    {
+      var result = map.Remove(value);
+      if(prune && map.Count == 0) 
+      {
+        // do prune even if value wasn't present!
+        Remove(key);
+      }
+      return result;
+    }
+    return false;
+  }
+
+  /// <summary>
+  /// The total number of edges / key pairs in this <see cref="KeySetMap"/>.
+  /// </summary>
+  public int PairCount => Values.Sum(ks => ks.Count);
 }

@@ -21,6 +21,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <PackageReference Include="TteLcl.Csv" Version="0.1.0" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<ProjectReference Include="..\TteLcl.Reflections\TteLcl.Reflections.csproj" />
 	</ItemGroup>
 
