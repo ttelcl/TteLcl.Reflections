@@ -14,6 +14,13 @@ let usage focus =
   cp "\fg-types \fo@ \fcfile.csv\f0 \fbcolumn\f0   Export type information in the assemblies named in the \fbcolumn\f0 of the CSV \fcfile\f0."
   cp "\fg-typo \fcfile.types.json\f0  The output file collecting all \fg-types\f0 output"
   cp "\fg-rule \fcmodule \fbsuffix\f0    Add a submodule name generating rule extending \fcmodule\f0 if the assembly starts with the prefix derived from the module \fbsuffix\f0."
+  cp ""
+  cp "\foasmreflect typegraph\f0 {\fg-a \fcseed.[dll|exe]\f0} {\fg-p \fcassembly\f0} [\fg-o \fcoutput.json\f0]"
+  cp "  Analyze types in .NET assemblies by tracking references between types"
+  cp "\fg-a \fcfile\f0                An assembly file to analyze and use as seed for determining valid assemblies (\fc*.exe\f0, \fc*.dll\f0)"
+  cp "\fx\fx\fx                       (all types in these assemblies are inluded, not just public types: '\fg-p\f0' is implied)"
+  cp "\fg-p \fcassembly\f0            Additional assemblies reachable from the \fg-a\f0 assemblies for which to include ALL types."
+  cp ""
   cp "\fg-v \f0        \fx            Verbose mode"
 
 

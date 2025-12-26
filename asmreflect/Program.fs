@@ -18,6 +18,8 @@ let rec run arglist =
     0  // program return status code to the operating system; 0 == "OK"
   | "check" :: rest ->
     rest |> AppCheck.run
+  | "typegraph" :: rest ->
+    rest |> AppTypegraph.run
   | x :: _ when x.StartsWith('-') ->
     arglist |> AppCheck.run
   | x :: _ ->
