@@ -9,6 +9,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using TteLcl.Reflections.TypesModel;
+
 namespace TteLcl.Reflections.TypeTrees;
 
 /// <summary>
@@ -26,6 +28,11 @@ public class TypeNode
     State = LoadState.Initial;
     Identity = new TypeNodeReference(TargetType);
     Interfaces = [];
+    TypeKind = TypeModel.Categorize(TargetType);
+    GenericKind = TypeModel.CategorizeGeneric(TargetType);
+    GenericArguments = [];
+    IsAbstract = TargetType.IsAbstract;
+    IsSealed = TargetType.IsSealed;
   }
 
   /// <summary>
@@ -92,7 +99,42 @@ public class TypeNode
   /// Interfaces implemented by this type
   /// </summary>
   public List<TypeNode> Interfaces { get;}
+
+  /// <summary>
+  /// The typenode for the declaring type, if any
+  /// </summary>
+  public TypeNode? DeclaringNode { get; private set; }
+
+  /// <summary>
+  /// The typenode for the array element type, if any
+  /// </summary>
+  public TypeNode? ElementNode { get; private set; }
+
+  /// <summary>
+  /// The kind of the type
+  /// </summary>
+  public string TypeKind { get; }
   
+  /// <summary>
+  /// True if this type is abstract
+  /// </summary>
+  public bool IsAbstract { get; }
+  
+  /// <summary>
+  /// True if this type is sealed
+  /// </summary>
+  public bool IsSealed { get; }
+
+  /// <summary>
+  /// Indicates how this type fits in the generic type system - if at all
+  /// </summary>
+  public string? GenericKind { get; }
+
+  /// <summary>
+  /// The generic type info descriptors (empty for non-generic types)
+  /// </summary>
+  public List<TypeArgumentInfo> GenericArguments { get; }
+
   private void LoadInternal()
   {
     BaseNode = Owner.TryAddNode(TargetType.BaseType);
@@ -100,7 +142,17 @@ public class TypeNode
     {
       Interfaces.Add(Owner.AddNode(intf));
     }
-    // more to be added
+    DeclaringNode = Owner.TryAddNode(TargetType.DeclaringType);
+    if(TargetType.IsGenericType)
+    {
+      foreach(var ta in TargetType.GetGenericArguments())
+      {
+        GenericArguments.Add(new TypeArgumentInfo(Owner, ta));
+      }
+    }
+    ElementNode = Owner.TryAddNode(TargetType.GetElementType());
+
+    // TBC
   }
 
   /// <summary>

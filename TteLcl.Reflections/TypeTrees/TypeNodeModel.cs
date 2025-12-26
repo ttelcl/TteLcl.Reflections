@@ -40,6 +40,7 @@ public class TypeNodeModel: TypeNodeReference
   public TypeNodeModel(TypeNode node)
     : base(node.Identity)
   {
+    var host = node.Owner;
     var type = node.TargetType;
     Base = node.BaseNode?.Key;
     var interfaces = new List<string>();
@@ -49,7 +50,15 @@ public class TypeNodeModel: TypeNodeReference
       interfaces.Add(intf.Key);
     }
     Label = type.ToString();
+    ShortName = type.Name;
     Visibility = type.AsTypeVisibility();
+    DeclaringType = node.DeclaringNode?.Key;
+    IsAbstract = node.IsAbstract;
+    IsSealed = node.IsSealed;
+    TypeKind = node.TypeKind;
+    GenericKind = node.GenericKind;
+    GenericArgs = node.GenericArguments;
+    IsVisible = type.IsVisible;
   }
 
   /// <summary>
@@ -59,10 +68,22 @@ public class TypeNodeModel: TypeNodeReference
   public string Label { get; }
 
   /// <summary>
-  /// A reference to the base type (if any)
+  /// The short name for the type
   /// </summary>
-  [JsonProperty("base")]
-  public string? Base { get; }
+  [JsonProperty("shortname")]
+  public string ShortName { get; }
+
+  /// <summary>
+  /// The kind of type
+  /// </summary>
+  [JsonProperty("kind")]
+  public string TypeKind { get; }
+
+  /// <summary>
+  /// True if the type is public or nested in a way that is publicly accessible
+  /// </summary>
+  [JsonProperty("visible")]
+  public bool IsVisible { get; }
 
   /// <summary>
   /// The visibility of the type
@@ -78,9 +99,68 @@ public class TypeNodeModel: TypeNodeReference
   public int VisRank => Visibility.RankOrder();
 
   /// <summary>
+  /// A reference to the base type (if any)
+  /// </summary>
+  [JsonProperty("base")]
+  public string? Base { get; }
+
+  /// <summary>
   /// The interfaces implemented by this type, if any
   /// </summary>
   [JsonProperty("interfaces")]
   public IReadOnlyList<string> Interfaces { get; }
 
+  /// <summary>
+  /// Reference to the declaring type, if any
+  /// </summary>
+  [JsonProperty("declaringtype")]
+  public string? DeclaringType { get; }
+
+  /// <summary>
+  /// Reference to the (array) element type, if any
+  /// </summary>
+  [JsonProperty("elementtype")]
+  public string? ElementType { get; }
+
+  /// <summary>
+  /// True if the type is sealed
+  /// </summary>
+  [JsonProperty("sealed")]
+  public bool IsSealed { get; }
+
+  /// <summary>
+  /// True if the type is abstract
+  /// </summary>
+  [JsonProperty("abstract")]
+  public bool IsAbstract { get; }
+
+  /// <summary>
+  /// True if this type is "static". Equivalent to <see cref="IsSealed"/> AND <see cref="IsAbstract"/>
+  /// (there is no "static" concept in IL)
+  /// </summary>
+  [JsonProperty("static")]
+  public bool IsStatic => IsSealed && IsAbstract;
+
+  /// <summary>
+  /// True if the type is nested
+  /// </summary>
+  [JsonProperty("nested")]
+  public bool IsNested =>
+    Visibility switch {
+      TypeVisibility.Private => false,
+      TypeVisibility.Public => false,
+      _ => true
+    };
+
+  /// <summary>
+  /// The kind of generic type this is (or null if none at all)
+  /// </summary>
+  [JsonProperty("generic")]
+  public string? GenericKind { get; }
+
+  /// <summary>
+  /// The generic type argument descriptors (empty if not relevant)
+  /// </summary>
+  [JsonProperty("arguments")]
+  public IReadOnlyList<TypeArgumentInfo> GenericArgs { get; }
 }
