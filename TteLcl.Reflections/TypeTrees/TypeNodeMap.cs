@@ -23,10 +23,11 @@ public class TypeNodeMap
   /// <summary>
   /// Create a new TypeNodeMap
   /// </summary>
-  public TypeNodeMap()
+  public TypeNodeMap(TypeEdgeKind relations)
   {
     _map = new Dictionary<Type, TypeNode>();
     _pendingTypes = new Queue<TypeNode>();
+    AnalysisRelations = relations;
   }
 
   /// <summary>
@@ -45,6 +46,11 @@ public class TypeNodeMap
       return node;
     }
   }
+
+  /// <summary>
+  /// The kinds of type relations to include beyond the basics
+  /// </summary>
+  public TypeEdgeKind AnalysisRelations { get; }
 
   /// <summary>
   /// Load the next pending <see cref="TypeNode"/>.

@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -33,6 +34,7 @@ public class TypeNode
     GenericArguments = [];
     IsAbstract = TargetType.IsAbstract;
     IsSealed = TargetType.IsSealed;
+    ImplementationTypes = [];
   }
 
   /// <summary>
@@ -135,6 +137,12 @@ public class TypeNode
   /// </summary>
   public List<TypeArgumentInfo> GenericArguments { get; }
 
+  /// <summary>
+  /// Types used in properties, fields, method arguments and return types
+  /// and events, as selected by <see cref="TypeNodeMap.AnalysisRelations"/>.
+  /// </summary>
+  public HashSet<TypeNode> ImplementationTypes { get; }
+
   private void LoadInternal()
   {
     BaseNode = Owner.TryAddNode(TargetType.BaseType);
@@ -152,7 +160,43 @@ public class TypeNode
     }
     ElementNode = Owner.TryAddNode(TargetType.GetElementType());
 
-    // TBC
+    if(Owner.AnalysisRelations.HasFlag(TypeEdgeKind.Properties))
+    {
+      var properties = TargetType.GetProperties(
+        BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+      foreach(var prop in properties)
+      {
+        AddLinkedType(prop.PropertyType);
+      }
+    }
+    if(Owner.AnalysisRelations.HasFlag(TypeEdgeKind.Fields))
+    {
+      var fields = TargetType.GetFields(
+        BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+      foreach(var f in fields)
+      {
+        AddLinkedType(f.FieldType);
+      }
+    }
+  }
+
+  private void AddLinkedType(Type type)
+  {
+    // Skip generic parameters and arrays of generic parameters
+    if(type.IsGenericParameter)
+    {
+      return;
+    }
+    if(type.IsArray)
+    {
+      var elementType = type.GetElementType();
+      if(elementType != null && elementType.IsGenericType)
+      {
+        return;
+      }
+    }
+    var node = Owner.AddNode(type);
+    ImplementationTypes.Add(node);
   }
 
   /// <summary>

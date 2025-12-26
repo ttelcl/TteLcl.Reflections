@@ -25,6 +25,7 @@ type private Options = {
   FullAssemblies: string list
   Outputfile: string
   Rules: SubmoduleRules
+  Relations: TypeEdgeKind
 }
 
 let private buildFileCollection o =
@@ -47,7 +48,7 @@ let private runTypegraph o =
     o.SeedAssemblies
     |> Seq.map loadSeedAssembly
     |> Seq.toArray
-  let typenodes = new TypeNodeMap()
+  let typenodes = new TypeNodeMap(o.Relations)
   // first add seed assemblies
   for assembly in seedAssemblies do
     assembly |> typenodes.AddAssembly
@@ -97,6 +98,22 @@ let run args =
     | "-rule" :: m :: prefix :: rest ->
       o.Rules.AddRule(m, prefix) |> ignore
       rest |> parseMore o
+    | "-props" :: rest ->
+      rest |> parseMore {o with Relations = o.Relations ||| TypeEdgeKind.Properties}
+    | "-fields" :: rest ->
+      rest |> parseMore {o with Relations = o.Relations ||| TypeEdgeKind.Fields}
+    | "-returns" :: rest | "-return" :: rest ->
+      rest |> parseMore {o with Relations = o.Relations ||| TypeEdgeKind.Returns}
+    | "-args" :: rest | "-arguments" :: rest ->
+      rest |> parseMore {o with Relations = o.Relations ||| TypeEdgeKind.Arguments}
+    | "-methods" :: rest ->
+      rest |> parseMore {o with Relations = o.Relations ||| TypeEdgeKind.Methods}
+    | "-events" :: rest ->
+      rest |> parseMore {o with Relations = o.Relations ||| TypeEdgeKind.Events}
+    | "-ctor" :: rest ->
+      rest |> parseMore {o with Relations = o.Relations ||| TypeEdgeKind.Constructors}
+    | "-all" :: rest ->
+      rest |> parseMore {o with Relations = o.Relations ||| TypeEdgeKind.All}
     | [] ->
       if o.SeedAssemblies |> List.isEmpty then
         cp "\foNo seed assembly arguments (\fg-a\fo) given\f0."
@@ -120,6 +137,7 @@ let run args =
     FullAssemblies = []
     Outputfile = null
     Rules = new SubmoduleRules()
+    Relations = TypeEdgeKind.None
   }
   match oo with
   | Some(o) ->

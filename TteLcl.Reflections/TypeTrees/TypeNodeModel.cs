@@ -59,6 +59,8 @@ public class TypeNodeModel: TypeNodeReference
     GenericKind = node.GenericKind;
     GenericArgs = node.GenericArguments;
     IsVisible = type.IsVisible;
+    LinkedTypes = 
+      node.ImplementationTypes.Select(node => node.Key).OrderBy(key => key).ToList();
   }
 
   /// <summary>
@@ -163,4 +165,10 @@ public class TypeNodeModel: TypeNodeReference
   /// </summary>
   [JsonProperty("arguments")]
   public IReadOnlyList<TypeArgumentInfo> GenericArgs { get; }
+
+  /// <summary>
+  /// Types referenced in the members of the type
+  /// </summary>
+  [JsonProperty("linkedtypes")]
+  public IReadOnlyList<string> LinkedTypes { get; }
 }
