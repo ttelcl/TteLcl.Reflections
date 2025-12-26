@@ -72,7 +72,7 @@ public class TypeModel
   /// Sort order based on <see cref="Visibility"/>.
   /// </summary>
   [JsonProperty("visrank")]
-  public int VisibilityOrder => VisibilityRankOrder(Visibility);
+  public int VisibilityOrder => Visibility.RankOrder();
 
   /// <summary>
   /// The categorization of the type
@@ -146,7 +146,7 @@ public class TypeModel
   /// </summary>
   [JsonProperty("dt-vis-rank")]
   public int? DeclaringTypeVisibilityRank =>
-    DeclaringTypeVisibility==null ? null : VisibilityRankOrder(DeclaringTypeVisibility.Value);
+    DeclaringTypeVisibility==null ? null : DeclaringTypeVisibility.Value.RankOrder();
 
   ///// <summary>
   ///// Tell the serializer not to serialize <see cref="DeclaringType"/> if it is null
@@ -247,27 +247,6 @@ public class TypeModel
       return "closed";
     }
     return null;
-  }
-
-  /// <summary>
-  /// Assign a sort order to a visibilty, aiming to give more visibile ones
-  /// a lower result.
-  /// </summary>
-  /// <param name="v"></param>
-  /// <returns></returns>
-  public static int VisibilityRankOrder(TypeVisibility v)
-  {
-    return v switch {
-      TypeVisibility.Public => 0,
-      TypeVisibility.NestedPublic => 1,
-      TypeVisibility.NestedFamilyOrAssembly => 2,
-      TypeVisibility.NestedAssembly => 3,
-      TypeVisibility.NestedFamily => 4,
-      TypeVisibility.NestedFamilyAndAssembly => 5,
-      TypeVisibility.Private => 6,
-      TypeVisibility.NestedPrivate => 7,
-      _ => 1000,
-    };
   }
 
   /// <summary>

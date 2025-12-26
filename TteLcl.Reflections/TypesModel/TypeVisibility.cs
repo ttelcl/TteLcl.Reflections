@@ -67,3 +67,47 @@ public enum TypeVisibility
   [EnumMember(Value = "nested-family-or-assembly")]
   NestedFamilyOrAssembly = TypeAttributes.NestedFamORAssem,
 }
+
+/// <summary>
+/// Static methods and extensions related to <see cref="TypeVisibility"/>
+/// </summary>
+public static class TypeVisibilityUtils
+{
+  /// <summary>
+  /// Convert <see cref="TypeAttributes"/> to <see cref="TypeVisibility"/>
+  /// </summary>
+  public static TypeVisibility AsTypeVisibility(this TypeAttributes attributes)
+  {
+    return (TypeVisibility)(int)(attributes & TypeAttributes.VisibilityMask);
+  }
+
+  /// <summary>
+  /// Convert the attributes of a <see cref="Type"/> to <see cref="TypeVisibility"/>
+  /// </summary>
+  public static TypeVisibility AsTypeVisibility(this Type type)
+  {
+    return (TypeVisibility)(int)(type.Attributes & TypeAttributes.VisibilityMask);
+  }
+
+  /// <summary>
+  /// Assign a sort order to a visibilty, aiming to give more visibile ones
+  /// a lower result.
+  /// </summary>
+  /// <param name="v"></param>
+  /// <returns></returns>
+  public static int RankOrder(this TypeVisibility v)
+  {
+    return v switch {
+      TypeVisibility.Public => 0,
+      TypeVisibility.NestedPublic => 1,
+      TypeVisibility.NestedFamilyOrAssembly => 2,
+      TypeVisibility.NestedAssembly => 3,
+      TypeVisibility.NestedFamily => 4,
+      TypeVisibility.NestedFamilyAndAssembly => 5,
+      TypeVisibility.Private => 6,
+      TypeVisibility.NestedPrivate => 7,
+      _ => 1000,
+    };
+  }
+
+}

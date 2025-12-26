@@ -133,4 +133,25 @@ public class TypeNodeMap
   /// Get all nodes in this map
   /// </summary>
   public IReadOnlyCollection<TypeNode> Nodes => _map.Values;
+
+  /// <summary>
+  /// Convert all nodes to their model and return a dictionary grouped
+  /// by assembly
+  /// </summary>
+  /// <returns></returns>
+  public Dictionary<string, List<TypeNodeModel>> ToAssemblyGroupedModel()
+  {
+    var list =
+      Nodes
+      .Select(node => node.ToModel())
+      .OrderBy(model => model.AssemblyName ?? "")
+      .ThenBy(model => model.Name ?? model.Key)
+      .ToList();
+    var grouped =
+      list.GroupBy(model => model.AssemblyName ?? "");
+    return
+      grouped.ToDictionary(
+        g => g.Key,
+        g => g.ToList());
+  }
 }

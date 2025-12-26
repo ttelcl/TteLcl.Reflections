@@ -24,6 +24,8 @@ public class TypeNode
     TargetType = targetType;
     Owner = owner;
     State = LoadState.Initial;
+    Identity = new TypeNodeReference(TargetType);
+    Interfaces = [];
   }
 
   /// <summary>
@@ -35,6 +37,17 @@ public class TypeNode
   /// The <see cref="TypeNodeMap"/> owning this node
   /// </summary>
   public TypeNodeMap Owner { get; }
+
+  /// <summary>
+  /// The <see cref="TypeNodeReference"/> that will be used to uniquely identify this node
+  /// </summary>
+  public TypeNodeReference Identity { get; }
+
+  /// <summary>
+  /// A unique identifier for this node. Normally formed from the name of the type and assembly,
+  /// but using a fallback if those are not both available.
+  /// </summary>
+  public string Key => Identity.Key;
 
   /// <summary>
   /// Indicates the progress in the loading process
@@ -75,12 +88,18 @@ public class TypeNode
   /// </summary>
   public TypeNode? BaseNode { get; private set; }
 
-
+  /// <summary>
+  /// Interfaces implemented by this type
+  /// </summary>
+  public List<TypeNode> Interfaces { get;}
   
   private void LoadInternal()
   {
     BaseNode = Owner.TryAddNode(TargetType.BaseType);
-
+    foreach(var intf in TargetType.GetInterfaces())
+    {
+      Interfaces.Add(Owner.AddNode(intf));
+    }
     // more to be added
   }
 

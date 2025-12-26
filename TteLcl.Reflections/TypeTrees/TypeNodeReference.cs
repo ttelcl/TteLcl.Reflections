@@ -52,6 +52,23 @@ public class TypeNodeReference
   }
 
   /// <summary>
+  /// Create a clone of <paramref name="template"/>.
+  /// </summary>
+  /// <param name="template"></param>
+  public TypeNodeReference(TypeNodeReference template)
+    : this(template.Name, template.AssemblyName, template.Key)
+  {
+  }
+
+  /// <summary>
+  /// The key used to identify this type. Normally formed from
+  /// <see cref="Name"/> and <see cref="AssemblyName"/>.
+  /// If either of those is missing, a fallback starting with '?' is used
+  /// </summary>
+  [JsonProperty("key")]
+  public string Key { get; }
+
+  /// <summary>
   /// The type name, if available
   /// </summary>
   [JsonProperty("name")]
@@ -62,12 +79,4 @@ public class TypeNodeReference
   /// </summary>
   [JsonProperty("assembly")]
   public string? AssemblyName { get; }
-
-  /// <summary>
-  /// The key used to identify this type. Normally formed from
-  /// <see cref="Name"/> and <see cref="AssemblyName"/>.
-  /// If either of those is missing, a fallback starting with '?' is used
-  /// </summary>
-  [JsonProperty("key")]
-  public string Key { get; }
 }

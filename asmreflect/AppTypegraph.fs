@@ -64,13 +64,10 @@ let private runTypegraph o =
       nextFeedback <- now.AddMilliseconds(250)
       cpx $"\r \fc{typenodes.PendingNodeCount,5}\fo / \fb{typenodes.NodeCount, 5}\f0  ..."
   cp $"\r \fc{typenodes.PendingNodeCount,5}\fo / \fb{typenodes.NodeCount, 5}\f0  Done."
-  let models =
-    typenodes.Nodes
-    |> Seq.map (fun node -> node.ToModel())
-    |> Seq.toArray
+  let modelsByAssembly = typenodes.ToAssemblyGroupedModel()
   do
     use w = o.Outputfile |> startFile
-    let json = JsonConvert.SerializeObject(models, Formatting.Indented)
+    let json = JsonConvert.SerializeObject(modelsByAssembly, Formatting.Indented)
     w.WriteLine(json)
   o.Outputfile |> finishFile
   0
