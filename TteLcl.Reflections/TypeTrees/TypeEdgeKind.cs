@@ -33,14 +33,14 @@ public enum TypeEdgeKind
   Fields = 2,
 
   /// <summary>
-  /// Include method return types
+  /// Include method types: return values, arguments, and generic method parameter types
   /// </summary>
-  Returns = 4,
+  Methods = 4,
 
   /// <summary>
-  /// Include method argument types
+  /// Include constructor arguments
   /// </summary>
-  Arguments = 8,
+  Constructors = 8,
 
   /// <summary>
   /// Include event delegate types
@@ -48,17 +48,7 @@ public enum TypeEdgeKind
   Events = 16,
 
   /// <summary>
-  /// Include constructor arguments
-  /// </summary>
-  Constructors = 32,
-
-  /// <summary>
-  /// Include method arguments and return types
-  /// </summary>
-  Methods = Returns | Arguments,
-
-  /// <summary>
   /// Include all type relations
   /// </summary>
-  All = Properties | Fields | Returns | Arguments | Events | Constructors,
+  All = Properties | Fields | Methods | Constructors | Events ,
 }

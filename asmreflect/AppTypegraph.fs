@@ -102,15 +102,11 @@ let run args =
       rest |> parseMore {o with Relations = o.Relations ||| TypeEdgeKind.Properties}
     | "-fields" :: rest ->
       rest |> parseMore {o with Relations = o.Relations ||| TypeEdgeKind.Fields}
-    | "-returns" :: rest | "-return" :: rest ->
-      rest |> parseMore {o with Relations = o.Relations ||| TypeEdgeKind.Returns}
-    | "-args" :: rest | "-arguments" :: rest ->
-      rest |> parseMore {o with Relations = o.Relations ||| TypeEdgeKind.Arguments}
     | "-methods" :: rest ->
       rest |> parseMore {o with Relations = o.Relations ||| TypeEdgeKind.Methods}
     | "-events" :: rest ->
       rest |> parseMore {o with Relations = o.Relations ||| TypeEdgeKind.Events}
-    | "-ctor" :: rest ->
+    | "-ctor" :: rest | "-constructor" :: rest | "-constructors" :: rest ->
       rest |> parseMore {o with Relations = o.Relations ||| TypeEdgeKind.Constructors}
     | "-all" :: rest ->
       rest |> parseMore {o with Relations = o.Relations ||| TypeEdgeKind.All}

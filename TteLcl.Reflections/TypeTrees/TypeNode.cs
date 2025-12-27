@@ -178,6 +178,23 @@ public class TypeNode
         AddLinkedType(f.FieldType);
       }
     }
+    if(Owner.AnalysisRelations.HasFlag(TypeEdgeKind.Methods))
+    {
+      var methods = TargetType.GetMethods(
+        BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+      foreach(var method in methods)
+      {
+        AddLinkedType(method.ReturnType);
+        foreach(var genericArgument in method.GetGenericArguments())
+        {
+          AddLinkedType(genericArgument);
+        }
+        foreach(var parameter in method.GetParameters())
+        {
+          AddLinkedType(parameter.ParameterType);
+        }
+      }
+    }
   }
 
   private void AddLinkedType(Type type)
