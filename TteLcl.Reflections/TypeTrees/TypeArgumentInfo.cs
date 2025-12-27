@@ -40,11 +40,13 @@ public class TypeArgumentInfo
   /// The label used for this type argument. If <see cref="TypeKey"/> is non-null,
   /// this matches the referenced type's label.
   /// </summary>
+  [JsonProperty("label")]
   public string Label { get; }
 
   /// <summary>
   /// The key of the concrete type (null for placeholder type arguments)
   /// </summary>
+  [JsonProperty("typekey")]
   public string? TypeKey { get; }
 
 }

@@ -60,6 +60,7 @@ public class TypeNodeModel: TypeNodeReference
     GenericArgs = node.GenericArguments;
     GenericDefinition = node.GenericDefinitionNode?.Key;
     IsVisible = type.IsVisible;
+    Tree = node.Tree;
     LinkedTypes = 
       node.ImplementationTypes.Select(node => node.Key).OrderBy(key => key).ToList();
   }
@@ -172,6 +173,12 @@ public class TypeNodeModel: TypeNodeReference
   /// </summary>
   [JsonProperty("definition")]
   public string? GenericDefinition { get; }
+
+  /// <summary>
+  /// A tree model for composite types
+  /// </summary>
+  [JsonProperty("tree")]
+  public TypeTreeNode Tree { get; }
 
   /// <summary>
   /// Types referenced in the members of the type

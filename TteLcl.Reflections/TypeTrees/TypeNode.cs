@@ -149,6 +149,11 @@ public class TypeNode
   /// </summary>
   public HashSet<TypeNode> ImplementationTypes { get; }
 
+  /// <summary>
+  /// The decomposition of this type if it is generic
+  /// </summary>
+  public TypeTreeNode Tree { get; private set; } = null!;
+
   private void LoadInternal()
   {
     BaseNode = Owner.TryAddNode(TargetType.BaseType);
@@ -167,7 +172,7 @@ public class TypeNode
       GenericDefinitionNode = Owner.TryAddNode(definition);
     }
     ElementNode = Owner.TryAddNode(TargetType.GetElementType());
-
+    Tree = new TypeTreeNode(Owner, TargetType);
     if(Owner.AnalysisRelations.HasFlag(TypeEdgeKind.Properties))
     {
       var properties = TargetType.GetProperties(
