@@ -47,13 +47,13 @@ public class TypeNodeReference
     AssemblyName = t.Assembly.GetName().Name;
     if(!String.IsNullOrEmpty(Name) && !String.IsNullOrEmpty(AssemblyName))
     {
-      Key = SimplifyKey($"{Name}, {AssemblyName}");
+      Key = SimplifyKey($"{Name} @ {AssemblyName}");
     }
     else
     {
       var name = SimplifyKey(t.ToString());
       var an = t.Assembly.GetName().Name ?? t.Assembly.ToString();
-      Key = SimplifyKey($"? {name}, {an}");
+      Key = SimplifyKey($"? {name} @ {an}");
     }
   }
 
