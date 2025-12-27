@@ -58,6 +58,7 @@ public class TypeNodeModel: TypeNodeReference
     TypeKind = node.TypeKind;
     GenericKind = node.GenericKind;
     GenericArgs = node.GenericArguments;
+    GenericDefinition = node.GenericDefinitionNode?.Key;
     IsVisible = type.IsVisible;
     LinkedTypes = 
       node.ImplementationTypes.Select(node => node.Key).OrderBy(key => key).ToList();
@@ -165,6 +166,12 @@ public class TypeNodeModel: TypeNodeReference
   /// </summary>
   [JsonProperty("arguments")]
   public IReadOnlyList<TypeArgumentInfo> GenericArgs { get; }
+
+  /// <summary>
+  /// The generic type definition, is applicable. This may be a self-reference
+  /// </summary>
+  [JsonProperty("definition")]
+  public string? GenericDefinition { get; }
 
   /// <summary>
   /// Types referenced in the members of the type

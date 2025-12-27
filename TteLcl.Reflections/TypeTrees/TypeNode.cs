@@ -77,7 +77,7 @@ public class TypeNode
         LoadInternal();
       }
       finally
-      { 
+      {
         State = LoadState.Loaded;
       }
     }
@@ -100,7 +100,7 @@ public class TypeNode
   /// <summary>
   /// Interfaces implemented by this type
   /// </summary>
-  public List<TypeNode> Interfaces { get;}
+  public List<TypeNode> Interfaces { get; }
 
   /// <summary>
   /// The typenode for the declaring type, if any
@@ -116,12 +116,12 @@ public class TypeNode
   /// The kind of the type
   /// </summary>
   public string TypeKind { get; }
-  
+
   /// <summary>
   /// True if this type is abstract
   /// </summary>
   public bool IsAbstract { get; }
-  
+
   /// <summary>
   /// True if this type is sealed
   /// </summary>
@@ -131,6 +131,12 @@ public class TypeNode
   /// Indicates how this type fits in the generic type system - if at all
   /// </summary>
   public string? GenericKind { get; }
+
+  /// <summary>
+  /// The type node containing the generic type definition, if any.
+  /// This may be a self-link!
+  /// </summary>
+  public TypeNode? GenericDefinitionNode { get; private set; }
 
   /// <summary>
   /// The generic type info descriptors (empty for non-generic types)
@@ -157,6 +163,8 @@ public class TypeNode
       {
         GenericArguments.Add(new TypeArgumentInfo(Owner, ta));
       }
+      var definition = TargetType.GetGenericTypeDefinition();
+      GenericDefinitionNode = Owner.TryAddNode(definition);
     }
     ElementNode = Owner.TryAddNode(TargetType.GetElementType());
 
@@ -192,6 +200,31 @@ public class TypeNode
         foreach(var parameter in method.GetParameters())
         {
           AddLinkedType(parameter.ParameterType);
+        }
+      }
+    }
+    if(Owner.AnalysisRelations.HasFlag(TypeEdgeKind.Constructors))
+    {
+      var constructors = TargetType.GetConstructors(
+        BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+      foreach(var constructor in constructors)
+      {
+        foreach(var parameter in constructor.GetParameters())
+        {
+          AddLinkedType(parameter.ParameterType);
+        }
+      }
+    }
+    if(Owner.AnalysisRelations.HasFlag(TypeEdgeKind.Events))
+    {
+      var events = TargetType.GetEvents(
+        BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+      foreach(var evt in events)
+      {
+        var type = evt.EventHandlerType;
+        if(type != null)
+        {
+          AddLinkedType(type);
         }
       }
     }

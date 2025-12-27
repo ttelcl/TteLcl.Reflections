@@ -106,7 +106,7 @@ let run args =
       rest |> parseMore {o with Relations = o.Relations ||| TypeEdgeKind.Methods}
     | "-events" :: rest ->
       rest |> parseMore {o with Relations = o.Relations ||| TypeEdgeKind.Events}
-    | "-ctor" :: rest | "-constructor" :: rest | "-constructors" :: rest ->
+    | "-ctor" :: rest | "-ctors" :: rest | "-constructor" :: rest | "-constructors" :: rest ->
       rest |> parseMore {o with Relations = o.Relations ||| TypeEdgeKind.Constructors}
     | "-all" :: rest ->
       rest |> parseMore {o with Relations = o.Relations ||| TypeEdgeKind.All}

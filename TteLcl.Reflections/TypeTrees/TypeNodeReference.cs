@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 using Newtonsoft.Json;
@@ -37,17 +38,22 @@ public class TypeNodeReference
   public TypeNodeReference(
     Type t)
   {
-    Name = t.FullName;
+    var nm = t.FullName;
+    if(nm != null)
+    {
+      nm = SimplifyKey(nm);
+    }
+    Name = nm;
     AssemblyName = t.Assembly.GetName().Name;
     if(!String.IsNullOrEmpty(Name) && !String.IsNullOrEmpty(AssemblyName))
     {
-      Key = $"{Name}, {AssemblyName}";
+      Key = SimplifyKey($"{Name}, {AssemblyName}");
     }
     else
     {
-      var name = t.ToString();
+      var name = SimplifyKey(t.ToString());
       var an = t.Assembly.GetName().Name ?? t.Assembly.ToString();
-      Key = $"? {name}, {an}";
+      Key = SimplifyKey($"? {name}, {an}");
     }
   }
 
@@ -79,4 +85,17 @@ public class TypeNodeReference
   /// </summary>
   [JsonProperty("assembly")]
   public string? AssemblyName { get; }
+
+  /// <summary>
+  /// Removes parts of keys that don't seem to be very relevant
+  /// </summary>
+  /// <param name="fullkey"></param>
+  /// <returns></returns>
+  public static string SimplifyKey(string fullkey)
+  {
+    var key = Regex.Replace(fullkey, @", Version=\d+\.\d+\.\d+\.\d+", "");
+    key = Regex.Replace(key, @", Culture=[-a-zA-Z]+", "");
+    key = Regex.Replace(key, @", PublicKeyToken=[a-f0-9]{16}", "");
+    return key;
+  }
 }
