@@ -67,9 +67,21 @@ let private runTypegraph o =
   cp $"\r \fc{typenodes.PendingNodeCount,5}\fo / \fb{typenodes.NodeCount, 5}\f0  Done."
   let modelsByAssembly = typenodes.ToAssemblyGroupedModel()
   do
-    use w = o.Outputfile |> startFile
-    let json = JsonConvert.SerializeObject(modelsByAssembly, Formatting.Indented)
-    w.WriteLine(json)
+    let outputType = (o.Outputfile |> Path.GetExtension).ToLowerInvariant()
+    match outputType with
+    | ".mjson" ->
+      cp $"Saving output in \fomulti-json\f0 mode to \fg{o.Outputfile}\f0."
+      use w = o.Outputfile |> startFile
+      for kvp in modelsByAssembly do
+        for nodeModel in kvp.Value do
+          let json = JsonConvert.SerializeObject(nodeModel, Formatting.Indented)
+          w.WriteLine(json)
+    | _ ->
+      cp $"Saving output in \fbplain json\f0 mode to \fg{o.Outputfile}\f0."
+      use w = o.Outputfile |> startFile
+      let json = JsonConvert.SerializeObject(modelsByAssembly, Formatting.Indented)
+      w.WriteLine(json)
+
   o.Outputfile |> finishFile
   0
 
