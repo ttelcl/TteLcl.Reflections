@@ -190,7 +190,10 @@ public class TypeNode
     if(type.IsArray)
     {
       var elementType = type.GetElementType();
-      if(elementType != null && elementType.IsGenericType)
+      // Time to read the fine print on GetElementType(): it returns null in several cases,
+      // *including the generic type parameter case* in addition the obvious "it is not an array
+      // or something else that has an 'element type'"
+      if(elementType == null || elementType.IsGenericParameter)
       {
         return;
       }
