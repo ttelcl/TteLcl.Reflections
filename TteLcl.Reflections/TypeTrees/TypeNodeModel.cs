@@ -63,6 +63,7 @@ public class TypeNodeModel: TypeNodeReference
     Tree = node.Tree;
     LinkedTypes = 
       node.ImplementationTypes.Select(node => node.Key).OrderBy(key => key).ToList();
+    AssemblyFull = type.Assembly.FullName;
   }
 
   /// <summary>
@@ -185,4 +186,10 @@ public class TypeNodeModel: TypeNodeReference
   /// </summary>
   [JsonProperty("linkedtypes")]
   public IReadOnlyList<string> LinkedTypes { get; }
+
+  /// <summary>
+  /// Full assembly name
+  /// </summary>
+  [JsonProperty("asmfull")]
+  public string? AssemblyFull { get; }
 }
