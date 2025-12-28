@@ -24,6 +24,7 @@ public class TypeNode
   /// </summary>
   internal TypeNode(Type targetType, TypeNodeMap owner)
   {
+    TargetTypes = new HashSet<Type> { targetType };
     TargetType = targetType;
     Owner = owner;
     State = LoadState.Initial;
@@ -38,9 +39,15 @@ public class TypeNode
   }
 
   /// <summary>
-  /// The type this node describes
+  /// The primary type this node describes
   /// </summary>
   public Type TargetType { get; }
+
+  /// <summary>
+  /// All types having the same key as <see cref="TargetType"/>. It is uncommon
+  /// for there to be more than one, but may happen with equivalent open generic types
+  /// </summary>
+  public HashSet<Type> TargetTypes { get; }
 
   /// <summary>
   /// The <see cref="TypeNodeMap"/> owning this node

@@ -18,6 +18,7 @@ namespace TteLcl.Reflections.TypeTrees;
 public class TypeNodeMap
 {
   private readonly Dictionary<Type, TypeNode> _map;
+  private readonly Dictionary<string, TypeNode> _uniqueMap;
   private readonly Queue<TypeNode> _pendingTypes;
 
   /// <summary>
@@ -26,6 +27,7 @@ public class TypeNodeMap
   public TypeNodeMap(TypeEdgeKind relations)
   {
     _map = new Dictionary<Type, TypeNode>();
+    _uniqueMap = new Dictionary<string, TypeNode>();
     _pendingTypes = new Queue<TypeNode>();
     AnalysisRelations = relations;
   }
@@ -44,9 +46,21 @@ public class TypeNodeMap
           throw new InvalidOperationException(
             $"Generic Parameters should be filtered: '{t}' in {t.DeclaringType?.ToString()??"-"} or {t.DeclaringMethod?.ToString()??"-"}");
         }
-        node = new TypeNode(t, this);
-        _map[t] = node;
-        _pendingTypes.Enqueue(node);
+        // check if there is an equivalent node already
+        var refnode = new TypeNodeReference(t);
+        if(!_uniqueMap.TryGetValue(refnode.Key, out node))
+        {
+          node = new TypeNode(t, this);
+          _map[t] = node;
+          _uniqueMap[node.Key] = node;
+          _pendingTypes.Enqueue(node);
+        }
+        else
+        {
+          // equivalent type found: add to _map but not _uniqueMap
+          _map[t] = node;
+          node.TargetTypes.Add(t);
+        }
       }
       return node;
     }
@@ -81,7 +95,7 @@ public class TypeNodeMap
   /// <summary>
   /// The total number of <see cref="TypeNode"/>s in this map (both loaded and unloaded)
   /// </summary>
-  public int NodeCount => _map.Count;
+  public int NodeCount => _uniqueMap.Count;
 
   /// <summary>
   /// Keep loading nodes until there are none left to load
@@ -143,7 +157,7 @@ public class TypeNodeMap
   /// <summary>
   /// Get all nodes in this map
   /// </summary>
-  public IReadOnlyCollection<TypeNode> Nodes => _map.Values;
+  public IReadOnlyCollection<TypeNode> Nodes => _uniqueMap.Values;
 
   /// <summary>
   /// Convert all nodes to their model and return a dictionary grouped
