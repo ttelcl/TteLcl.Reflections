@@ -64,6 +64,7 @@ public class TypeNodeModel: TypeNodeReference
     LinkedTypes = 
       node.ImplementationTypes.Select(node => node.Key).OrderBy(key => key).ToList();
     AssemblyFull = type.Assembly.FullName;
+    ElementType = node.ElementType;
   }
 
   /// <summary>
@@ -122,10 +123,10 @@ public class TypeNodeModel: TypeNodeReference
   public string? DeclaringType { get; }
 
   /// <summary>
-  /// Reference to the (array) element type, if any
+  /// Reference to the (array/pointer/reference) element type, if any
   /// </summary>
-  [JsonProperty("elementtype")]
-  public string? ElementType { get; }
+  [JsonProperty("element")]
+  public TypeArgumentInfo? ElementType { get; }
 
   /// <summary>
   /// True if the type is sealed

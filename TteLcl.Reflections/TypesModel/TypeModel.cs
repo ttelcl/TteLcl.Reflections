@@ -203,6 +203,18 @@ public class TypeModel
     {
       return "array";
     }
+    if(type.IsByRef)
+    {
+      return "reference";
+    }
+    if(type.IsByRefLike)
+    {
+      return "reflike";
+    }
+    if(type.IsPointer)
+    {
+      return "pointer";
+    }
     if(type.IsEnum)
     {
       return "enum";

@@ -14,7 +14,8 @@ using Newtonsoft.Json;
 namespace TteLcl.Reflections.TypeTrees;
 
 /// <summary>
-/// A serializable description of a type argument
+/// A serializable description of a type argument or other type that may be
+/// a generic type argument.
 /// </summary>
 public class TypeArgumentInfo
 {
@@ -34,6 +35,22 @@ public class TypeArgumentInfo
       TypeKey = node.Key;
       Label = typeArgument.ToString();
     }
+  }
+
+  /// <summary>
+  /// Create a new <see cref="TypeArgumentInfo"/> if <paramref name="typeArgument"/>
+  /// is not null
+  /// </summary>
+  /// <param name="host"></param>
+  /// <param name="typeArgument"></param>
+  /// <returns></returns>
+  public static TypeArgumentInfo? FromType(TypeNodeMap host, Type? typeArgument)
+  {
+    if(typeArgument != null)
+    {
+      return new TypeArgumentInfo(host, typeArgument);
+    }
+    return null;
   }
 
   /// <summary>

@@ -108,9 +108,9 @@ public class TypeNode
   public TypeNode? DeclaringNode { get; private set; }
 
   /// <summary>
-  /// The typenode for the array element type, if any
+  /// A <see cref="TypeArgumentInfo"/> wrapping the the array (or similar) element type, if any.
   /// </summary>
-  public TypeNode? ElementNode { get; private set; }
+  public TypeArgumentInfo? ElementType { get; private set; }
 
   /// <summary>
   /// The kind of the type
@@ -171,7 +171,7 @@ public class TypeNode
       var definition = TargetType.GetGenericTypeDefinition();
       GenericDefinitionNode = Owner.TryAddNode(definition);
     }
-    ElementNode = Owner.TryAddNode(TargetType.GetElementType());
+    ElementType = TypeArgumentInfo.FromType(Owner, TargetType.GetElementType());
     Tree = new TypeTreeNode(Owner, TargetType);
     if(Owner.AnalysisRelations.HasFlag(TypeEdgeKind.Properties))
     {
@@ -242,7 +242,7 @@ public class TypeNode
     {
       return;
     }
-    if(type.IsArray)
+    if(type.IsArray || type.IsByRef || type.IsPointer || type.IsByRefLike)
     {
       var elementType = type.GetElementType();
       // Time to read the fine print on GetElementType(): it returns null in several cases,

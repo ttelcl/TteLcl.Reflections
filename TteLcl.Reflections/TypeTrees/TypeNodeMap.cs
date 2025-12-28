@@ -39,6 +39,11 @@ public class TypeNodeMap
     get {
       if(!_map.TryGetValue(t, out var node))
       {
+        if(t.IsGenericParameter) // covers both IsGenericTypeParameter and IsGenericMethodParameter
+        {
+          throw new InvalidOperationException(
+            $"Generic Parameters should be filtered: '{t}' in {t.DeclaringType?.ToString()??"-"} or {t.DeclaringMethod?.ToString()??"-"}");
+        }
         node = new TypeNode(t, this);
         _map[t] = node;
         _pendingTypes.Enqueue(node);
