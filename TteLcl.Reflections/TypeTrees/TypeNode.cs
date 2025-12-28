@@ -28,7 +28,7 @@ public class TypeNode
     TargetType = targetType;
     Owner = owner;
     State = LoadState.Initial;
-    Identity = new TypeNodeReference(TargetType);
+    Identity = new TypeNodeReference(TargetType, owner);
     Interfaces = [];
     TypeKind = TypeModel.Categorize(TargetType);
     GenericKind = TypeModel.CategorizeGeneric(TargetType);
@@ -64,6 +64,11 @@ public class TypeNode
   /// but using a fallback if those are not both available.
   /// </summary>
   public string Key => Identity.Key;
+
+  /// <summary>
+  /// A numerical ID for the node
+  /// </summary>
+  public long Id => Identity.Id;
 
   /// <summary>
   /// Indicates the progress in the loading process

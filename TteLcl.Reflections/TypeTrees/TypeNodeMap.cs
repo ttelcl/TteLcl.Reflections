@@ -20,12 +20,16 @@ public class TypeNodeMap
   private readonly Dictionary<Type, TypeNode> _map;
   private readonly Dictionary<string, TypeNode> _uniqueMap;
   private readonly Queue<TypeNode> _pendingTypes;
+  private readonly IdentityMap<Assembly> _assemblyIdMap;
+  private readonly IdentityMap<Type> _typeIdMap;
 
   /// <summary>
   /// Create a new TypeNodeMap
   /// </summary>
   public TypeNodeMap(TypeEdgeKind relations)
   {
+    _assemblyIdMap = new();
+    _typeIdMap = new();
     _map = new Dictionary<Type, TypeNode>();
     _uniqueMap = new Dictionary<string, TypeNode>();
     _pendingTypes = new Queue<TypeNode>();
@@ -47,7 +51,7 @@ public class TypeNodeMap
             $"Generic Parameters should be filtered: '{t}' in {t.DeclaringType?.ToString()??"-"} or {t.DeclaringMethod?.ToString()??"-"}");
         }
         // check if there is an equivalent node already
-        var refnode = new TypeNodeReference(t);
+        var refnode = new TypeNodeReference(t, this);
         if(!_uniqueMap.TryGetValue(refnode.Key, out node))
         {
           node = new TypeNode(t, this);
@@ -64,6 +68,29 @@ public class TypeNodeMap
       }
       return node;
     }
+  }
+
+  /// <summary>
+  /// Return an ID for an assembly (generating one if necessary).
+  /// </summary>
+  /// <param name="asm"></param>
+  /// <returns></returns>
+  public long AssemblyId(Assembly? asm)
+  {
+    return _assemblyIdMap.GetId(asm);
+  }
+
+  /// <summary>
+  /// Return an identifier for a type. This includes an identifier for the type's assembly
+  /// with a large multiplier.
+  /// </summary>
+  /// <param name="t"></param>
+  /// <returns></returns>
+  public long TypeId(Type? t)
+  {
+    var tid = _typeIdMap.GetId(t);
+    var aid = AssemblyId(t?.Assembly);
+    return aid * 10000000L + tid;
   }
 
   /// <summary>
