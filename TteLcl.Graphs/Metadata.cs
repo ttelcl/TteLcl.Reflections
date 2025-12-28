@@ -133,6 +133,22 @@ public class Metadata: IHasMetadata
   }
 
   /// <summary>
+  /// Split a keyed tag into the key and the tag. If the argument is unkeyed,
+  /// return an empty string for the key part.
+  /// </summary>
+  /// <param name="tag">
+  /// A keyed tag (in the form key::tag) or an unkeyed tag
+  /// </param>
+  /// <returns>
+  /// An array with two items: the key (default: an empty string) and the tag
+  /// </returns>
+  public static string[] SplitTag(string tag)
+  {
+    var parts = tag.Split("::", 2);
+    return parts.Length != 2 ? ["", tag] : parts;
+  }
+
+  /// <summary>
   /// Returns true if this metadata has at least one of the specified
   /// unkeyed tags
   /// </summary>

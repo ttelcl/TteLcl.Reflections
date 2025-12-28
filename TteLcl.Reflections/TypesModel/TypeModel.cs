@@ -21,7 +21,8 @@ public class TypeModel
   [JsonConstructor]
   public TypeModel()
   {
-    throw new NotImplementedException();
+    // Deserialization is not supported yet
+    throw new NotSupportedException();
   }
 
   /// <summary>
@@ -33,21 +34,23 @@ public class TypeModel
     Name = type.Name;
     Label = type.ToString();
     AssemblyName = type.Assembly.FullName;
-    //FullName = type.FullName;
-    //AssemblyQualifiedName = type.AssemblyQualifiedName;
+    AssemblyTag = AssemblyString(type.Assembly);
     Visibility = (TypeVisibility)(int)(type.Attributes & TypeAttributes.VisibilityMask);
     IsAbstract = type.IsAbstract;
     IsSealed = type.IsSealed;
     Kind = Categorize(type);
     Generic = CategorizeGeneric(type);
     var declaringType = type.DeclaringType;
-    // DeclaringType = declaringType?.AssemblyQualifiedName ?? declaringType?.FullName ?? declaringType?.Name;
     DeclaringType = declaringType?.ToString();
-    DeclaringAssembly = declaringType?.Assembly.FullName;
+    DeclaringTypeVisibility =
+      declaringType == null
+      ? null
+      : (TypeVisibility)(int)(declaringType.Attributes & TypeAttributes.VisibilityMask);
+    DeclaringAssembly = AssemblyString(declaringType?.Assembly);
     var baseType = type.BaseType;
     // BaseType0 = baseType?.AssemblyQualifiedName ?? baseType?.FullName ?? baseType?.Name;
     BaseType = baseType?.ToString();
-    BaseAssembly = baseType?.Assembly.FullName;
+    BaseAssembly = AssemblyString(baseType?.Assembly);
     var interfaces = type.GetInterfaces();
     Interfaces = interfaces.Select(i => i.ToString()).ToList();
   }
@@ -64,6 +67,12 @@ public class TypeModel
   [JsonProperty("visibility")]
   [JsonConverter(typeof(StringEnumConverter))]
   public TypeVisibility Visibility { get; }
+
+  /// <summary>
+  /// Sort order based on <see cref="Visibility"/>.
+  /// </summary>
+  [JsonProperty("visrank")]
+  public int VisibilityOrder => Visibility.RankOrder();
 
   /// <summary>
   /// The categorization of the type
@@ -84,34 +93,21 @@ public class TypeModel
   public string Name { get; }
 
   /// <summary>
-  /// The name of the assembly
+  /// The name of the assembly (long version)
   /// </summary>
-  [JsonProperty("assembly")]
+  [JsonProperty("assemblyname")]
   public string? AssemblyName { get; }
 
-  ///// <summary>
-  ///// The full name (null for generic type parameters)
-  ///// </summary>
-  //[JsonProperty("fullname")]
-  //public string? FullName { get; }
-
-  ///// <summary>
-  ///// The assembly qualified name (null for generic type parameters)
-  ///// </summary>
-  //[JsonProperty("qualifiedname")]
-  //public string? AssemblyQualifiedName { get; }
-
   /// <summary>
-  /// Tell the serializer not to serialize <see cref="Generic"/> if it is null
+  /// The short assembly name
   /// </summary>
-  public bool ShouldSerializeGeneric() => Generic != null;
+  [JsonProperty("assembly")]
+  public string? AssemblyTag { get; }
 
   ///// <summary>
-  ///// The <see cref="AssemblyQualifiedName"/>, <see cref="FullName"/> or <see cref="Name"/>
-  ///// of the base type, whichever is not null. Will be null for the System.Object type.
+  ///// Tell the serializer not to serialize <see cref="Generic"/> if it is null
   ///// </summary>
-  //[JsonProperty("basetype0")]
-  //public string? BaseType0 { get; }
+  //public bool ShouldSerializeGeneric() => Generic != null;
 
   /// <summary>
   /// The label of the base type (null for System.Object)
@@ -125,11 +121,11 @@ public class TypeModel
   [JsonProperty("baseassembly")]
   public string? BaseAssembly { get; }
 
-  /// <summary>
-  /// Tell the serializer not to serialize <see cref="BaseAssembly"/> if it is null
-  /// or if it is the same as <see cref="AssemblyName"/>
-  /// </summary>
-  public bool ShouldSerializeBaseAssembly() => BaseAssembly != null && BaseAssembly != AssemblyName;
+  ///// <summary>
+  ///// Tell the serializer not to serialize <see cref="BaseAssembly"/> if it is null
+  ///// or if it is the same as <see cref="AssemblyName"/>
+  ///// </summary>
+  //public bool ShouldSerializeBaseAssembly() => BaseAssembly != null && BaseAssembly != AssemblyName;
 
   /// <summary>
   /// The label
@@ -139,9 +135,23 @@ public class TypeModel
   public string? DeclaringType { get; }
 
   /// <summary>
-  /// Tell the serializer not to serialize <see cref="DeclaringType"/> if it is null
+  /// Visibility of the declaring type (if any)
   /// </summary>
-  public bool ShouldSerializeDeclaringType() => DeclaringType != null;
+  [JsonProperty("dt-visibility")]
+  [JsonConverter(typeof(StringEnumConverter))]
+  public TypeVisibility? DeclaringTypeVisibility { get; }
+
+  /// <summary>
+  /// Visibilty rank of the declaring type.
+  /// </summary>
+  [JsonProperty("dt-vis-rank")]
+  public int? DeclaringTypeVisibilityRank =>
+    DeclaringTypeVisibility==null ? null : DeclaringTypeVisibility.Value.RankOrder();
+
+  ///// <summary>
+  ///// Tell the serializer not to serialize <see cref="DeclaringType"/> if it is null
+  ///// </summary>
+  //public bool ShouldSerializeDeclaringType() => DeclaringType != null;
 
   /// <summary>
   /// The assembly of the declaring type, if defined
@@ -149,11 +159,11 @@ public class TypeModel
   [JsonProperty("declaringassembly")]
   public string? DeclaringAssembly { get; }
 
-  /// <summary>
-  /// Tell the serializer not to serialize <see cref="DeclaringAssembly"/> if it is null
-  /// or if it is the same as <see cref="AssemblyName"/>
-  /// </summary>
-  public bool ShouldSerializeDeclaringAssembly() => DeclaringAssembly != null && DeclaringAssembly != AssemblyName;
+  ///// <summary>
+  ///// Tell the serializer not to serialize <see cref="DeclaringAssembly"/> if it is null
+  ///// or if it is the same as <see cref="AssemblyName"/>
+  ///// </summary>
+  //public bool ShouldSerializeDeclaringAssembly() => DeclaringAssembly != null && DeclaringAssembly != AssemblyName;
 
   /// <summary>
   /// True if abstract
@@ -173,10 +183,10 @@ public class TypeModel
   [JsonProperty("interfaces")]
   public IReadOnlyList<string> Interfaces { get; }
 
-  /// <summary>
-  /// Tell the serializer not to serialize <see cref="DeclaringType"/> if it is null
-  /// </summary>
-  public bool ShouldSerializeInterfaces() => Interfaces.Count > 0;
+  ///// <summary>
+  ///// Tell the serializer not to serialize <see cref="DeclaringType"/> if it is empty
+  ///// </summary>
+  //public bool ShouldSerializeInterfaces() => Interfaces.Count > 0;
 
   /// <summary>
   /// Categorize the type
@@ -192,6 +202,18 @@ public class TypeModel
     if(type.IsArray)
     {
       return "array";
+    }
+    if(type.IsByRef)
+    {
+      return "reference";
+    }
+    if(type.IsByRefLike)
+    {
+      return "reflike";
+    }
+    if(type.IsPointer)
+    {
+      return "pointer";
     }
     if(type.IsEnum)
     {
@@ -240,20 +262,13 @@ public class TypeModel
   }
 
   /// <summary>
-  /// Sort order based on <see cref="Visibility"/>. The aim is to put the most 
-  /// open visibilities first and the most restrictive last
+  /// Get the short name for the assembly. In unusual cases this may return null
+  /// even if <paramref name="assembly"/> is not null.
   /// </summary>
-  [JsonIgnore]
-  public int VisibilityOrder =>
-    Visibility switch {
-      TypeVisibility.Public => 0,
-      TypeVisibility.NestedPublic => 1,
-      TypeVisibility.NestedFamilyOrAssembly => 2,
-      TypeVisibility.NestedAssembly => 3,
-      TypeVisibility.NestedFamily => 4,
-      TypeVisibility.NestedFamilyAndAssembly => 5,
-      TypeVisibility.Private => 6,
-      TypeVisibility.NestedPrivate => 7,
-      _ => 1000,
-    };
+  /// <param name="assembly"></param>
+  /// <returns></returns>
+  public static string? AssemblyString(Assembly? assembly)
+  {
+    return assembly?.GetName().Name;
+  }
 }

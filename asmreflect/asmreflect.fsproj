@@ -17,6 +17,7 @@
 		<Compile Include="ExceptionTool.fs" />
 		<Compile Include="Usage.fs" />
 		<Compile Include="AppCheck.fs" />
+		<Compile Include="AppTypegraph.fs" />
 		<Compile Include="Program.fs" />
 	</ItemGroup>
 
