@@ -176,9 +176,10 @@ public class TypeNode
     DeclaringNode = Owner.TryAddNode(TargetType.DeclaringType);
     if(TargetType.IsGenericType)
     {
+      var index = 0;
       foreach(var ta in TargetType.GetGenericArguments())
       {
-        GenericArguments.Add(new TypeArgumentInfo(Owner, ta));
+        GenericArguments.Add(new TypeArgumentInfo(Owner, ta, index++));
       }
       var definition = TargetType.GetGenericTypeDefinition();
       GenericDefinitionNode = Owner.TryAddNode(definition);
