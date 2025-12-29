@@ -27,12 +27,14 @@ public class TypeArgumentInfo
     if(typeArgument.IsGenericParameter)
     {
       TypeKey = null;
+      TypeId = 0L;
       Label = typeArgument.ToString();
     }
     else
     {
       var node = host.AddNode(typeArgument);
       TypeKey = node.Key;
+      TypeId = node.Id;
       Label = typeArgument.ToString();
     }
   }
@@ -61,9 +63,14 @@ public class TypeArgumentInfo
   public string Label { get; }
 
   /// <summary>
+  /// The ID of the concrete type (0 for placeholder type arguments)
+  /// </summary>
+  [JsonProperty("typeid")]
+  public long TypeId { get; }
+
+  /// <summary>
   /// The key of the concrete type (null for placeholder type arguments)
   /// </summary>
   [JsonProperty("typekey")]
   public string? TypeKey { get; }
-
 }

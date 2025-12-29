@@ -59,13 +59,14 @@ public class TypeNodeModel: TypeNodeReference
     TypeKind = node.TypeKind;
     GenericKind = node.GenericKind;
     GenericArgs = node.GenericArguments;
-    GenericDefinition = node.GenericDefinitionNode?.Key;
+    GenericDefinition = node.GenericDefinitionNode?.Id ?? 0;
     IsVisible = type.IsVisible;
     Tree = node.Tree;
     LinkedTypes = 
-      node.ImplementationTypes.Select(node => node.Key).OrderBy(key => key).ToList();
+      node.ImplementationTypes.Select(node => node.Id).OrderBy(id => id).ToList();
     AssemblyFull = type.Assembly.FullName;
     ElementType = node.ElementType;
+    AssemblyId = node.Owner.AssemblyId(type.Assembly);
   }
 
   /// <summary>
@@ -172,10 +173,10 @@ public class TypeNodeModel: TypeNodeReference
   public IReadOnlyList<TypeArgumentInfo> GenericArgs { get; }
 
   /// <summary>
-  /// The generic type definition, is applicable. This may be a self-reference
+  /// The generic type definition's ID, is applicable (0 if not). This may be a self-reference
   /// </summary>
   [JsonProperty("definition")]
-  public string? GenericDefinition { get; }
+  public long GenericDefinition { get; }
 
   /// <summary>
   /// A tree model for composite types
@@ -187,11 +188,17 @@ public class TypeNodeModel: TypeNodeReference
   /// Types referenced in the members of the type
   /// </summary>
   [JsonProperty("linkedtypes")]
-  public IReadOnlyList<string> LinkedTypes { get; }
+  public IReadOnlyList<long> LinkedTypes { get; }
 
   /// <summary>
   /// Full assembly name
   /// </summary>
   [JsonProperty("asmfull")]
   public string? AssemblyFull { get; }
+
+  /// <summary>
+  /// Assembly ID (unscaled).
+  /// </summary>
+  [JsonProperty("asmid")]
+  public long AssemblyId { get; }
 }
