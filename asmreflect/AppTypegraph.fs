@@ -85,6 +85,20 @@ let private runTypegraph o =
   o.Outputfile |> finishFile
   0
 
+let private loadAssemblyNames (file:string) (column:string) =
+  seq {
+    use reader = new CsvReader(file, false, false)
+    let assemblyCell = reader.GetColumn(column)
+    let firstCell = reader.GetColumn(0)
+    while reader.Next() do
+      let asm = assemblyCell.Get()
+      let firstColumn = firstCell.Get()
+      if firstColumn.StartsWith('#') |> not then
+        yield asm
+  }
+  |> Seq.distinct
+  |> Seq.toList
+
 let run args =
   let rec parseMore o args =
     match args with
@@ -105,6 +119,9 @@ let run args =
            { o with SeedAssemblies = assembly :: o.SeedAssemblies; FullAssemblies = shortname :: o.FullAssemblies }
     | "-p" :: assembly :: rest ->
       rest |> parseMore {o with FullAssemblies = assembly :: o.FullAssemblies}
+    | "-pf" :: assemblycsv :: column :: rest ->
+      let assemblies = loadAssemblyNames assemblycsv column
+      rest |> parseMore {o with FullAssemblies = assemblies @ o.FullAssemblies}
     | "-o" :: file :: rest ->
       rest |> parseMore {o with Outputfile = file}
     | "-rule" :: m :: prefix :: rest ->
