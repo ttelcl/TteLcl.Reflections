@@ -20,6 +20,7 @@ let usage focus =
   cp "\fg-a \fcfile\f0                An assembly file to analyze and use as seed for determining valid assemblies (\fc*.exe\f0, \fc*.dll\f0)"
   cp "\fx\fx\fx                       (all types in these assemblies are inluded, not just public types: '\fg-p\f0' is implied)"
   cp "\fg-p \fcassembly\f0            Additional assemblies reachable from the \fg-a\f0 assemblies for which to include ALL types."
+  cp "\fg-pf \fcfile.csv \fbcolumn\f0 Load \fg-p\f0 assemblies from the column in a CSV file. Lines starting with \fo#\f0 are ignored"
   cp "\fg-o \fcoutputfile\f0          The output file in either plain \fc*.json\f0 or \fc*.mjson\f0 (multi-json) format."
   cp "\fg-props\fx\fx                 Follow property type edges"
   cp "\fg-fields\fx\fx                Follow field type edges"

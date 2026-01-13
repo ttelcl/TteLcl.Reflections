@@ -22,18 +22,23 @@ public class TypeArgumentInfo
   /// <summary>
   /// Create a new TypeArgumentInfo
   /// </summary>
-  public TypeArgumentInfo(TypeNodeMap host, Type typeArgument)
+  public TypeArgumentInfo(TypeNodeMap host, Type typeArgument, int index)
   {
     if(typeArgument.IsGenericParameter)
     {
       TypeKey = null;
+      TypeId = 0L;
       Label = typeArgument.ToString();
+      Index = index;
+      // Index = typeArgument.GenericParameterPosition; // Not correct: that only counts unassigned slots
     }
     else
     {
       var node = host.AddNode(typeArgument);
       TypeKey = node.Key;
+      TypeId = node.Id;
       Label = typeArgument.ToString();
+      Index = index;
     }
   }
 
@@ -41,14 +46,12 @@ public class TypeArgumentInfo
   /// Create a new <see cref="TypeArgumentInfo"/> if <paramref name="typeArgument"/>
   /// is not null
   /// </summary>
-  /// <param name="host"></param>
-  /// <param name="typeArgument"></param>
   /// <returns></returns>
-  public static TypeArgumentInfo? FromType(TypeNodeMap host, Type? typeArgument)
+  public static TypeArgumentInfo? FromType(TypeNodeMap host, Type? typeArgument, int index=0)
   {
     if(typeArgument != null)
     {
-      return new TypeArgumentInfo(host, typeArgument);
+      return new TypeArgumentInfo(host, typeArgument, index);
     }
     return null;
   }
@@ -61,9 +64,20 @@ public class TypeArgumentInfo
   public string Label { get; }
 
   /// <summary>
+  /// The ID of the concrete type (0 for placeholder type arguments)
+  /// </summary>
+  [JsonProperty("typeid")]
+  public long TypeId { get; }
+
+  /// <summary>
   /// The key of the concrete type (null for placeholder type arguments)
   /// </summary>
   [JsonProperty("typekey")]
   public string? TypeKey { get; }
 
+  /// <summary>
+  /// The index of the type argument in the list of all type arguments.
+  /// </summary>
+  [JsonProperty("index")]
+  public int Index { get; }
 }

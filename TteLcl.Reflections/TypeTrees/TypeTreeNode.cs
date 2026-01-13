@@ -28,7 +28,7 @@ public class TypeTreeNode
     if(type.IsGenericParameter)
     {
       // There is no TypeNode related to this tree node, just a name for a type parameter and no deeper arguments
-      TypeKey = null;
+      TypeKey = 0L;
       Label = type.ToString();
     }
     else if(type.IsGenericType)
@@ -36,7 +36,7 @@ public class TypeTreeNode
       // further breakdown possible
       var deftype = type.GetGenericTypeDefinition();
       var node = host[deftype];
-      TypeKey = node.Key;
+      TypeKey = node.Id;
       Label = deftype.ToString();
       foreach(var typeArgument in type.GetGenericArguments())
       {
@@ -47,7 +47,7 @@ public class TypeTreeNode
     {
       // plain type. Arrays are not yet handled, so they end up here too
       var node = host[type];
-      TypeKey = node.Key;
+      TypeKey = node.Id;
       Label = type.ToString();
     }
   }
@@ -60,10 +60,10 @@ public class TypeTreeNode
   public string Label { get; }
 
   /// <summary>
-  /// The key of the concrete type's definition (null for placeholder type arguments)
+  /// The key of the concrete type's definition (0 for placeholder type arguments)
   /// </summary>
   [JsonProperty("typekey")]
-  public string? TypeKey { get; }
+  public long TypeKey { get; }
 
   /// <summary>
   /// The type arguments (empty for leaf types)

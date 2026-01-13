@@ -26,10 +26,11 @@ public class TypeNodeModel: TypeNodeReference
   /// </summary>
   [JsonConstructor()]
   public TypeNodeModel(
+    long id,
     string? name,
     string? assembly,
     string key)
-    : base(name, assembly, key)
+    : base(id, name, assembly, key)
   {
     throw new NotImplementedException();
   }
@@ -42,29 +43,30 @@ public class TypeNodeModel: TypeNodeReference
   {
     var host = node.Owner;
     var type = node.TargetType;
-    Base = node.BaseNode?.Key;
-    var interfaces = new List<string>();
+    Base = node.BaseNode?.Id ?? 0;
+    var interfaces = new List<long>();
     Interfaces = interfaces;
     foreach(var intf in node.Interfaces.OrderBy(node => node.Key))
     {
-      interfaces.Add(intf.Key);
+      interfaces.Add(intf.Id);
     }
     Label = type.ToString();
     ShortName = type.Name;
     Visibility = type.AsTypeVisibility();
-    DeclaringType = node.DeclaringNode?.Key;
+    DeclaringType = node.DeclaringNode?.Id ?? 0;
     IsAbstract = node.IsAbstract;
     IsSealed = node.IsSealed;
     TypeKind = node.TypeKind;
     GenericKind = node.GenericKind;
     GenericArgs = node.GenericArguments;
-    GenericDefinition = node.GenericDefinitionNode?.Key;
+    GenericDefinition = node.GenericDefinitionNode?.Id ?? 0;
     IsVisible = type.IsVisible;
     Tree = node.Tree;
     LinkedTypes = 
-      node.ImplementationTypes.Select(node => node.Key).OrderBy(key => key).ToList();
+      node.ImplementationTypes.Select(node => node.Id).OrderBy(id => id).ToList();
     AssemblyFull = type.Assembly.FullName;
     ElementType = node.ElementType;
+    AssemblyId = node.Owner.AssemblyId(type.Assembly);
   }
 
   /// <summary>
@@ -105,22 +107,22 @@ public class TypeNodeModel: TypeNodeReference
   public int VisRank => Visibility.RankOrder();
 
   /// <summary>
-  /// A reference to the base type (if any)
+  /// A reference to the base type (if any; 0 if none)
   /// </summary>
   [JsonProperty("base")]
-  public string? Base { get; }
+  public long Base { get; }
 
   /// <summary>
-  /// The interfaces implemented by this type, if any
+  /// The IDs of the interfaces implemented by this type, if any
   /// </summary>
   [JsonProperty("interfaces")]
-  public IReadOnlyList<string> Interfaces { get; }
+  public IReadOnlyList<long> Interfaces { get; }
 
   /// <summary>
-  /// Reference to the declaring type, if any
+  /// Reference to the declaring type, if any (0 if none)
   /// </summary>
   [JsonProperty("declaringtype")]
-  public string? DeclaringType { get; }
+  public long DeclaringType { get; }
 
   /// <summary>
   /// Reference to the (array/pointer/reference) element type, if any
@@ -171,10 +173,10 @@ public class TypeNodeModel: TypeNodeReference
   public IReadOnlyList<TypeArgumentInfo> GenericArgs { get; }
 
   /// <summary>
-  /// The generic type definition, is applicable. This may be a self-reference
+  /// The generic type definition's ID, is applicable (0 if not). This may be a self-reference
   /// </summary>
   [JsonProperty("definition")]
-  public string? GenericDefinition { get; }
+  public long GenericDefinition { get; }
 
   /// <summary>
   /// A tree model for composite types
@@ -186,11 +188,17 @@ public class TypeNodeModel: TypeNodeReference
   /// Types referenced in the members of the type
   /// </summary>
   [JsonProperty("linkedtypes")]
-  public IReadOnlyList<string> LinkedTypes { get; }
+  public IReadOnlyList<long> LinkedTypes { get; }
 
   /// <summary>
   /// Full assembly name
   /// </summary>
   [JsonProperty("asmfull")]
   public string? AssemblyFull { get; }
+
+  /// <summary>
+  /// Assembly ID (unscaled).
+  /// </summary>
+  [JsonProperty("asmid")]
+  public long AssemblyId { get; }
 }

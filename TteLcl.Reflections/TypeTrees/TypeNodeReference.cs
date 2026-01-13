@@ -23,10 +23,12 @@ public class TypeNodeReference
   /// Deserialization constructor
   /// </summary>
   public TypeNodeReference(
+    long id,
     string? name,
     string? assembly,
     string key)
   {
+    Id = id;
     Name = name;
     AssemblyName = assembly;
     Key = key;
@@ -36,8 +38,9 @@ public class TypeNodeReference
   /// Create a new TypeNodeReference from a type
   /// </summary>
   public TypeNodeReference(
-    Type t)
+    Type t, TypeNodeMap nodemap)
   {
+    Id = nodemap.TypeId(t);
     var nm = t.FullName;
     if(nm != null)
     {
@@ -62,9 +65,15 @@ public class TypeNodeReference
   /// </summary>
   /// <param name="template"></param>
   public TypeNodeReference(TypeNodeReference template)
-    : this(template.Name, template.AssemblyName, template.Key)
+    : this(template.Id, template.Name, template.AssemblyName, template.Key)
   {
   }
+
+  /// <summary>
+  /// An id for the type
+  /// </summary>
+  [JsonProperty("id")]
+  public long Id { get; }
 
   /// <summary>
   /// The key used to identify this type. Normally formed from
