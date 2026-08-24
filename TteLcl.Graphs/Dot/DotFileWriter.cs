@@ -17,7 +17,7 @@ namespace TteLcl.Graphs.Dot;
 /// This does not support everything, just what is needed in the scope
 /// of this library.
 /// </summary>
-public class DotFileWriter: IDisposable
+public sealed class DotFileWriter: IDisposable
 {
   private TextWriter? _writer;
   private readonly HashSet<string> _knownNodes;
@@ -58,14 +58,14 @@ public class DotFileWriter: IDisposable
   /// disposing the returned scope marker.
   /// </summary>
   public void AddNode(
-    string label, // Must not include quotes.
+    string id, // Must not include quotes.
     IEnumerable<string> sublabels, // written as italic lines below main label
     string? shape = "box",
     string? style = "filled",
     string? color = null, // background color, omitted if null
-    string? id = null) // defaults to label
+    string? label = null) // defaults to id
   {
-    StartNode(label, sublabels, shape, style, color, id).Dispose();
+    StartNode(id, sublabels, shape, style, color, label).Dispose();
   }
 
   /// <summary>
@@ -73,8 +73,9 @@ public class DotFileWriter: IDisposable
   /// more properties to it using <see cref="WriteProperty(string, string)"/>,
   /// until you dispose the returned scope marker.
   /// </summary>
-  /// <param name="label">
-  /// The short label text (must not include quotes).
+  /// <param name="id">
+  /// Node id. Will also be used as label if <paramref name="label"/> is null.
+  /// Must not contain quotes or dot-HTML
   /// </param>
   /// <param name="sublabels">
   /// Additional text written as separate lines in italics below the main label.
@@ -88,27 +89,29 @@ public class DotFileWriter: IDisposable
   /// <param name="color">
   /// The fill color to use. Omitted if null
   /// </param>
-  /// <param name="id">
-  /// Node id. Defaults to <paramref name="label"/>
+  /// <param name="label">
+  /// The short label text (must not include quotes). Defaults to <paramref name="id"/>.
+  /// Will be used inside dot-html, so unlike <paramref name="id"/> this may contain
+  /// dot-html expressions.
   /// </param>
   /// <returns>
   /// A scope marker. Disposing it finishes the edge.
   /// </returns>
   /// <exception cref="InvalidOperationException"></exception>
   public IDisposable StartNode(
-    string label, // Must not include quotes.
+    string id,
     IEnumerable<string> sublabels, // written as italic lines below main label
     string? shape = "box",
     string? style = "filled",
     string? color = null, // background color, omitted if null
-    string? id = null) // defaults to label
+    string? label = null) // defaults to label
   {
-    if(String.IsNullOrEmpty(label))
+    if(String.IsNullOrEmpty(id))
     {
       throw new InvalidOperationException(
-        "Node labels must not be empty");
+        "Node ids must not be empty");
     }
-    id ??= label;
+    label ??= id;
     if(_knownNodes.Contains(id))
     {
       throw new InvalidOperationException(
@@ -265,6 +268,15 @@ public class DotFileWriter: IDisposable
     {
       Writer.WriteLine($"{_indent}{key}=\"{value}\"");
     }
+  }
+
+  /// <summary>
+  /// Write a comment line
+  /// </summary>
+  /// <param name="comment"></param>
+  public void WriteComment(string comment)
+  {
+    Writer.WriteLine($"{_indent}# {comment}");
   }
 
   private void SetIndent(int level)
