@@ -36,10 +36,18 @@ let private runDot o =
   let graph = o.InputFile |> Graph.DeserializeFile
   let seedKeys = graph.SeedNodes |> Seq.map (fun n -> n.Key) |> Set.ofSeq
   let sinkKeys = graph.SinkNodes |> Seq.map (fun n -> n.Key) |> Set.ofSeq
-  cp $"  (\fb{graph.NodeCount}\f0 nodes, \fc{graph.EdgeCount}\f0 edges, \fy{graph.SeedCount}\f0 seeds, \fo{graph.SinkCount}\f0 sinks)"
+  let directed = graph.Directed;
+  let directedText = if directed then "directed" else "undirected"
+  cp $"  (\fg{directedText}\f0, \fb{graph.NodeCount}\f0 nodes, \fc{graph.EdgeCount}\f0 edges, \fy{graph.SeedCount}\f0 seeds, \fo{graph.SinkCount}\f0 sinks)"
   do
     cp $"Writing \fg{o.OutputFile}\f0."
-    use dw = new DotFileWriter(o.OutputFile + ".tmp", true, horizontal = o.Horizontal)
+    use dw = new DotFileWriter(o.OutputFile + ".tmp", graph.Directed, horizontal = o.Horizontal)
+    if graph.Directed |> not then
+      dw.WriteProperty("layout", "neato")
+      dw.WriteProperty("overlap", "prism")
+      dw.WriteProperty("mode", "KK")
+      dw.WriteComment("Change 'start' to try different random seeds for the neato layout engine")
+      dw.WriteProperty("start", "42")
     let classification =
       match o.Subgraph with
       | NoPorts
@@ -68,12 +76,29 @@ let private runDot o =
           [| "sublabel" ; "module" |]
           |> node.Metadata.MapProperties
           |> Seq.toList
-        use _ = dw.StartNode(node.Key, sublabels, "box")
-        if o.Colors = Colorization.ColorPorts then
+        let shape =
+          let hasShape, shape = node.Metadata.Properties.TryGetValue("shape")
+          if hasShape then shape else "box"
+        let style =
+          let hasStyle, style = node.Metadata.Properties.TryGetValue("style")
+          if hasStyle then style else "filled"
+        let label =
+          let hasLabel, label = node.Metadata.Properties.TryGetValue("label")
+          if hasLabel then label else node.Key
+        use _ = dw.StartNode(node.Key, sublabels, shape = shape, style = style, label = label)
+        let hasColor, color = node.Metadata.Properties.TryGetValue("color")
+        if hasColor then
+          // an explicit color overrides auto-coloring
+          dw.WriteProperty("color", color)
+        elif o.Colors = Colorization.ColorPorts then
           if node.Key |> seedKeys.Contains then
             dw.WriteProperty("color", "#ccdd55")
           elif node.Key |> sinkKeys.Contains then
             dw.WriteProperty("color", "#cc55dd")
+        for propName in ["fillcolor"; "fontsize"] do
+          let hasProp, propValue = node.Metadata.Properties.TryGetValue(propName)
+          if hasProp then
+            dw.WriteProperty(propName, propValue)
         ()
       if subgraphlabel |> String.IsNullOrEmpty |> not then
         dw.WriteProperty("label", subgraphlabel)

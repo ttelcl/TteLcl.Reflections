@@ -27,10 +27,16 @@ public class Graph: IHasMetadata
   /// <param name="metadata">
   /// If provided: the metadata to copy into this new graph object
   /// </param>
+  /// <param name="directed">
+  /// If false: this graph should be interpreted as undirected graph.
+  /// Otherwise (and default): this graph is a directed graph.
+  /// </param>
   public Graph(
-    Metadata? metadata = null)
+    Metadata? metadata = null,
+    bool directed = true)
   {
     _nodes = new Dictionary<string, GraphNode>(StringComparer.OrdinalIgnoreCase);
+    Directed = directed;
     Metadata = new Metadata();
     metadata.ImportInto(Metadata);
   }
@@ -102,6 +108,13 @@ public class Graph: IHasMetadata
 
   /// <inheritdoc/>
   public Metadata Metadata { get; }
+
+  /// <summary>
+  /// If true (default), this graph should be interpreted as a directed graph.
+  /// If false, this graph should be interpreted as an undirected graph. Most applications
+  /// only support directed graphs and ignore this flag.
+  /// </summary>
+  public bool Directed { get; }
 
   /// <summary>
   /// The collection of nodes in this graph
@@ -670,6 +683,10 @@ public class Graph: IHasMetadata
       nodeObject.Remove("key");
       nodes[key] = nodeObject;
     }
+    if(!Directed) // only serialize directed==false, since directed==true is the default anyway
+    {
+      g["directed"] = false;
+    }
     g["nodes"] = nodes;
     Metadata.AddToObject(g);
     return g;
@@ -699,8 +716,10 @@ public class Graph: IHasMetadata
   /// <exception cref="InvalidOperationException"></exception>
   public static Graph Deserialize(JObject o)
   {
-    var g = new Graph();
-    g.Metadata.FillFromObject(o, ["nodes"]);
+    var directedToken = o["directed"];
+    var directed = directedToken == null || directedToken.Type != JTokenType.Boolean || (bool)directedToken;
+    var g = new Graph(directed: directed);
+    g.Metadata.FillFromObject(o, ["nodes", "directed"]);
     var nodesToken = o["nodes"];
     if(nodesToken is JObject nodes)
     {

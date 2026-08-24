@@ -60,10 +60,11 @@ let usage focus =
     cp "  \fg-n \fcnode\f0\fx             Remove the node named '\fcnode\f0' and its edges."
     cp ""
   if showSection "dot" then
-    cp "\fographops dot \fg-i \fcinputfile \f0[\fg-o \fcoutputfile\f0] [[\fg-ports\f0]|\fg-prop \fcproperty\f0|\fg-cluster\f0] [\fg-colorize \f0[\fonone\f0|\foports\f0]] [\fg-lr\f0]"
+    cp "\fographops dot \fg-i \fcinputfile \f0[\fg-o \fcoutputfile\f0] [[\fg-ports\f0]|\fg-noports\f0|\fg-prop \fcproperty\f0|\fg-cluster\f0] [\fg-colorize \f0[\fonone\f0|\foports\f0]] [\fg-lr\f0]"
     cp "  Export a GraphViz *.dot file describing the graph"
   if showDetails "dot" then
     cp "  \fg-ports \fx\f0             (default) Create same-rank subgraphs (not clusters) for seeds and sinks"
+    cp "  \fg-noports\fx\f0            Do not create separate subgraphs"
     cp "  \fg-prop \fcproperty\f0      Use the named property to cluster nodes"
     cp "  \fg-cluster \fx\f0           Create clusters for seeds, sinks, and others"
     cp "  \fg-colorize \fonone\f0      (default) Do not colorize nodes"
