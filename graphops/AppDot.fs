@@ -82,7 +82,10 @@ let private runDot o =
         let style =
           let hasStyle, style = node.Metadata.Properties.TryGetValue("style")
           if hasStyle then style else "filled"
-        use _ = dw.StartNode(node.Key, sublabels, shape)
+        let label =
+          let hasLabel, label = node.Metadata.Properties.TryGetValue("label")
+          if hasLabel then label else node.Key
+        use _ = dw.StartNode(node.Key, sublabels, shape = shape, style = style, label = label)
         let hasColor, color = node.Metadata.Properties.TryGetValue("color")
         if hasColor then
           // an explicit color overrides auto-coloring
