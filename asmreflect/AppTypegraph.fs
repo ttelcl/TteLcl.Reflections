@@ -55,8 +55,12 @@ let private runTypegraph o =
   cp $"After pre-loading \fg-a\f0 assemblies: \fb{typenodes.NodeCount}\f0 types"
   // next add the other full-load assemblies (aborting if unknown)
   for a in o.FullAssemblies do
-    let assembly = mlc.LoadFromAssemblyName(a)
-    assembly |> typenodes.AddAssembly
+    try
+      let assembly = mlc.LoadFromAssemblyName(a)
+      assembly |> typenodes.AddAssembly
+    with
+    | :? FileNotFoundException as ex ->
+      cp $"\fyError while loading '\fr{a}\fy': FileNotFound: \f0[\fw{ex.Message}\f0]"
   cp $"After pre-loading \fg-p\f0 assemblies: \fb{typenodes.NodeCount}\f0 types"
   let mutable nextFeedback = DateTime.UtcNow
   for loadedNode in typenodes.LoadNodes() do
