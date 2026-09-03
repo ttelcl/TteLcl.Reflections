@@ -35,7 +35,13 @@ public class AssemblyFileCollection
   /// <summary>
   /// Create a new <see cref="AssemblyFileCollection"/>
   /// </summary>
-  public AssemblyFileCollection(SubmoduleRules? rules = null, LoadSystem loadSystem = LoadSystem.Undefined)
+  /// <param name="rules"></param>
+  /// <param name="loadSystem"></param>
+  /// <param name="aliases"></param>
+  public AssemblyFileCollection(
+    SubmoduleRules? rules = null,
+    LoadSystem loadSystem = LoadSystem.Undefined,
+    IEnumerable<ModuleAliasRule>? aliases = null)
   {
     _assemblyFiles = new Dictionary<string, HashSet<AssemblyFileInfo>>(StringComparer.OrdinalIgnoreCase);
     _assemblyFilesView = new Dictionary<string, IReadOnlySet<AssemblyFileInfo>>(StringComparer.OrdinalIgnoreCase);
@@ -43,6 +49,15 @@ public class AssemblyFileCollection
     _assemblyTagsView = new Dictionary<AssemblyFileInfo, IReadOnlySet<string>>();
     LoadSystem = loadSystem;
     SubmoduleNamingRules = rules ?? new SubmoduleRules();
+    var aliasMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+    if(aliases != null)
+    {
+      foreach(var alias in aliases)
+      {
+        aliasMap[alias.Original] = alias.Alias;
+      }
+    }
+    AliasRules = aliasMap;
   }
 
   /// <summary>
@@ -59,6 +74,11 @@ public class AssemblyFileCollection
   /// Rules that can potentially upgrade a generated module name to a submodule name
   /// </summary>
   public SubmoduleRules SubmoduleNamingRules { get; }
+
+  /// <summary>
+  /// A mapping from original module names to aliased names
+  /// </summary>
+  public IReadOnlyDictionary<string, string> AliasRules { get; }
 
   /// <summary>
   /// Enumerate the distinct <see cref="AssemblyFileInfo"/> objects cached in this
@@ -115,7 +135,14 @@ public class AssemblyFileCollection
     foreach(var tag in tags)
     {
       var upgradedTag = SubmoduleNamingRules.ApplyIfmatch(tag, assumedName);
-      tagset.Add(upgradedTag);
+      if(AliasRules.TryGetValue(upgradedTag, out var aliasedTag))
+      {
+        tagset.Add(aliasedTag);
+      }
+      else
+      {
+        tagset.Add(upgradedTag);
+      }
     }
     return added;
 

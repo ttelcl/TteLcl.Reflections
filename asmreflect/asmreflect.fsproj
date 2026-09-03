@@ -15,6 +15,7 @@
 		<Compile Include="CommonTools.fs" />
 		<Compile Include="PrintUtils.fs" />
 		<Compile Include="ExceptionTool.fs" />
+		<Compile Include="ParameterFile.fs" />
 		<Compile Include="Usage.fs" />
 		<Compile Include="AppCheck.fs" />
 		<Compile Include="AppTypegraph.fs" />
