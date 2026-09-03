@@ -5,7 +5,7 @@ open CommonTools
 open ColorPrint
 
 let usage focus =
-  cp "\foasmreflect \f0[\fkcheck\f0] {\fg-a \fcseed.[dll|exe]\f0} [\fg-check\f0] [\fg-deps \fctag\f0]"
+  cp "\foasmreflect \f0[\fkcheck\f0] {\fg-a \fcseed.[dll|exe]\f0} [\fg-check\f0] [\fg-deps \fctag\f0] [\fg-@ \fcparameterfile\f0]"
   cp "   Analyze .NET assemblies and their dependencies"
   cp "\fg-a \fcfile\f0                An assembly file to analyze (\fc*.exe\f0, \fc*.dll\f0)"
   cp "\fg-check\f0\fx                 Check and report in greater detail"
@@ -14,6 +14,9 @@ let usage focus =
   cp "\fg-types \fo@ \fcfile.csv\f0 \fbcolumn\f0   Export type information in the assemblies named in the \fbcolumn\f0 of the CSV \fcfile\f0."
   cp "\fg-typo \fcfile.types.json\f0  The output file collecting all \fg-types\f0 output"
   cp "\fg-rule \fcmodule \fbsuffix\f0    Add a submodule name generating rule extending \fcmodule\f0 if the assembly starts with the prefix derived from the module \fbsuffix\f0."
+  cp "\fg-rulex \fcmodule \fbsuffix\f0   Like \fg-rule\f0, but matches any assembly starting with \fbsuffix\f0, even if not followed by '.'"
+  cp "\fg-m \fcoriginal \fbalias\f0      Add a rule for shortening module names, replacing \fgoriginal\f0 with \fgalias\f0 (after applying submodule rules) "
+  cp "\fg-@ \fcparameterfile\f0       Read arguments from the parameter file, ignoring lines starting with '#'"
   cp ""
   cp "\foasmreflect typegraph\f0 {\fg-a \fcseed.[dll|exe]\f0} {\fg-p \fcassembly\f0} [\fg-o \fcoutputfile\f0] <flags>"
   cp "  Analyze types in .NET assemblies by tracking references between types"

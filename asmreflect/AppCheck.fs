@@ -25,6 +25,7 @@ type private Options = {
   TypeAssemblies: string list
   TypeOutFile: string
   Rules: SubmoduleRules
+  AliasRules: ModuleAliasRule list
 }
 
 type private LoadState = {
@@ -36,7 +37,7 @@ type private LoadState = {
 }
 
 let private buildFileCollection o =
-  let afc = new AssemblyFileCollection(o.Rules)
+  let afc = new AssemblyFileCollection(o.Rules, aliases = o.AliasRules)
   for a in o.Assemblies do
     let tag = Path.GetFileNameWithoutExtension(a)
     cp $"Adding \fg{a}\f0..."
@@ -123,11 +124,11 @@ let private assemblyUsage o loadState =
     |> Seq.toArray
     |> Array.sortBy (fun afu -> (afu.Module, afu.IsUsed |> not, afu.AssemblyTag.ToLowerInvariant(), afu.AssemblyVersion, afu.FileName))
   let afcUsageFileName = $"{o.Dependencies}.registration-usage.json"
+  let afuByModuleAndUse =
+    afcUsage
+    |> Array.groupBy (fun afu -> afu.Module)
+    |> Array.map (fun (m,afus) -> (m, afus |> Array.groupBy (fun afu -> if afu.IsUsed then "used" else "unused")))
   do
-    let afuByModuleAndUse =
-      afcUsage
-      |> Array.groupBy (fun afu -> afu.Module)
-      |> Array.map (fun (m,afus) -> (m, afus |> Array.groupBy (fun afu -> if afu.IsUsed then "used" else "unused")))
     // Convert afuByModuleAndUse to something serializable
     let afuMap = new Dictionary<string,Dictionary<string,AssemblyFileUsage array>>()
     for (m, mg) in afuByModuleAndUse do
@@ -159,6 +160,18 @@ let private assemblyUsage o loadState =
       afu.FileName |> fileCell.Set
       rowBuffer |> cw.WriteRow
   afuFileName |> finishFile
+  let moduleFileName = $"{o.Dependencies}.modules.csv"
+  do
+    let builder = new CsvWriteRowBuilder()
+    let moduleCell = builder.AddCell("module")
+    let rowBuffer = builder.Build()
+    cp $"Saving \fg{moduleFileName}\f0."
+    use cw = new CsvRawWriter(moduleFileName + ".tmp")
+    rowBuffer |> cw.WriteHeader
+    for (m, _) in afuByModuleAndUse do
+      m |> moduleCell.Set
+      rowBuffer |> cw.WriteRow
+  moduleFileName |> finishFile
 
 let private loadDependencyGraph o loadState =
   let afc = loadState.Afc
@@ -306,6 +319,11 @@ let run args =
     | "--help" :: _
     | "-h" :: _ ->
       None
+    | "@" :: commandfile :: rest
+    | "-@" :: commandfile :: rest ->
+      match commandfile |> ParameterFile.readParameters |> parseMore o with
+      | None -> None
+      | Some(o2) -> rest |> parseMore o2
     | "-a" :: assembly :: rest ->
       if assembly |> File.Exists |> not then
         cp $"\foFile not found: \fy{assembly}"
@@ -329,6 +347,12 @@ let run args =
     | "-rule" :: m :: prefix :: rest ->
       o.Rules.AddRule(m, prefix) |> ignore
       rest |> parseMore o
+    | "-rulex" :: m :: prefix :: rest ->
+      o.Rules.AddRule(m, prefix, triggerPrefix = prefix) |> ignore
+      rest |> parseMore o
+    | "-m" :: m :: alias :: rest 
+    | "-alias" :: m :: alias :: rest ->
+      rest |> parseMore {o with AliasRules = new ModuleAliasRule(m, alias) :: o.AliasRules}
     | [] ->
       if o.Assemblies |> List.isEmpty then
         cp "\foNo assembly arguments (\fg-a\fo) given\f0."
@@ -337,7 +361,10 @@ let run args =
         cp "\frMissing \fg-typo\fr argument. \f0(\forequired when any \fy-types\fo is present\f0)"
         None
       else
-        {o with Assemblies = o.Assemblies |> List.rev; TypeAssemblies = o.TypeAssemblies |> List.rev} |> Some
+        {o with
+          Assemblies = o.Assemblies |> List.rev
+          TypeAssemblies = o.TypeAssemblies |> List.rev
+          AliasRules = o.AliasRules |> List.rev} |> Some
     | x :: _ ->
       cp $"\frUnrecognized argument \f0'\fy{x}\f0'"
       None 
@@ -348,6 +375,7 @@ let run args =
     TypeAssemblies = []
     TypeOutFile = null
     Rules = new SubmoduleRules()
+    AliasRules = []
   }
   match oo with
   | Some(o) ->
