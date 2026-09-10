@@ -79,7 +79,11 @@ public class AssemblyGraphLoader
   /// </returns>
   public bool AddAssembly(Assembly assembly, out AssemblyNode node)
   {
-    return Graph.AddNode(assembly, Registry, out node);
+    if(Graph.AddNode(assembly, Registry, out node))
+    {
+      return true;
+    }
+    return false;
   }
 
   /// <summary>
@@ -212,7 +216,7 @@ public class AssemblyGraphLoader
     }
     return count;
   }
-
+  
   private static readonly KeySetMap KnownCircularDependencies = new() {
     { "System", new() { "System.Configuration", "System.Xml" } },
     { "System.Xml", new() { "System.Configuration" } },

@@ -26,6 +26,7 @@ type private Options = {
   TypeOutFile: string
   Rules: SubmoduleRules
   AliasRules: ModuleAliasRule list
+  DoInternalsVisible: bool
 }
 
 type private LoadState = {
@@ -202,6 +203,10 @@ let private loadDependencyGraph o loadState =
     cp $"{eraser}{message}"
   else
     cp message
+  if o.DoInternalsVisible then
+    ()
+  else
+    cp "\foWarning\fr Absence of \fg-internals-visible-to\fr is currently ignored\f0."
   let fileName = $"{o.Dependencies}.asm-graph.json"
   do
     let graph = builder.Graph
@@ -353,6 +358,12 @@ let run args =
     | "-m" :: m :: alias :: rest 
     | "-alias" :: m :: alias :: rest ->
       rest |> parseMore {o with AliasRules = new ModuleAliasRule(m, alias) :: o.AliasRules}
+    | "-internalsvisibleto" :: rest 
+    | "-internalsvisible" :: rest 
+    | "-internals-visible" :: rest 
+    | "-internals-visible-to" :: rest 
+    | "-ivt" :: rest ->
+      rest |> parseMore {o with DoInternalsVisible = true}
     | [] ->
       if o.Assemblies |> List.isEmpty then
         cp "\foNo assembly arguments (\fg-a\fo) given\f0."
@@ -376,6 +387,7 @@ let run args =
     TypeOutFile = null
     Rules = new SubmoduleRules()
     AliasRules = []
+    DoInternalsVisible = false
   }
   match oo with
   | Some(o) ->

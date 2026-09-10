@@ -39,17 +39,22 @@ public class AssemblyNode: IGraphNode
   /// All tags associated with this node. If not already present, <paramref name="module"/> will
   /// be added automatically
   /// </param>
+  /// <param name="internalsVisibleTo">
+  /// The list of "internals visible to" attribute values (if known)
+  /// </param>
   [JsonConstructor]
   public AssemblyNode(
     string key,
     string? file = null,
     string? module = null,
-    IEnumerable<string>? tags = null)
+    IEnumerable<string>? tags = null,
+    IEnumerable<string>? internalsVisibleTo = null)
   {
     Key = key;
     AssemblyName = new AssemblyName(key);
     tags ??= [];
     Tags = new HashSet<string>(tags, StringComparer.OrdinalIgnoreCase);
+    InternalsVisibleTo = new HashSet<string>(internalsVisibleTo ?? [], StringComparer.OrdinalIgnoreCase);
     Module = module;
     if(module != null && !Tags.Contains(module))
     {
@@ -99,6 +104,22 @@ public class AssemblyNode: IGraphNode
   /// </summary>
   [JsonProperty("tags")]
   public HashSet<string> Tags { get; }
+
+  /// <summary>
+  /// The set of internals-visible-to attribute values in the node's assembly.
+  /// Not serialized if empty, including if not provided.
+  /// </summary>
+  [JsonProperty("internals-visible-to")]
+  public HashSet<string> InternalsVisibleTo { get; }
+
+  /// <summary>
+  /// Whether or not to serialize the <see cref="InternalsVisibleTo"/> field.
+  /// </summary>
+  /// <returns></returns>
+  public bool ShouldSerializeInternalsVisibleTo()
+  {
+    return InternalsVisibleTo != null && InternalsVisibleTo.Count > 0;
+  }
 
   /// <summary>
   /// Prevents serializing an empty or null <see cref="FileName"/>

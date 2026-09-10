@@ -478,11 +478,13 @@ public class AssemblyFileCollection
       }
       var primaryTag = tags.FirstOrDefault();
       var an = assembly.GetName();
+      var friends = AsmReflection.FindFriendAssemblyNames(assembly).ToList();
       node = new AssemblyNode(
         an.FullName,
         afi.FileName,
         primaryTag,
-        tags);
+        tags,
+        friends);
       return true;
     }
     node = null;
