@@ -9,6 +9,8 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Metadata;
+using System.Runtime.CompilerServices;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -67,6 +69,48 @@ public static class AsmReflection
         .Where(name => name != null)
         .Select(name => name!);
     return names;
+  }
+
+  /// <summary>
+  /// Return the <see cref="AssemblyName"/>s for the assemblies that have access to
+  /// <paramref name="assembly"/>'s internals.
+  /// </summary>
+  /// <param name="assembly"></param>
+  /// <returns></returns>
+  public static IEnumerable<AssemblyName> FindFriendAssemblies(Assembly assembly)
+  {
+    return
+      FindFriendAssemblyNames(assembly)
+      .Select(name => new AssemblyName(name));
+  }
+
+  /// <summary>
+  /// Converts a full public key from its binary form to a PublicKeyToken
+  /// </summary>
+  /// <param name="pk">
+  /// The public key, in its binary form
+  /// </param>
+  /// <returns></returns>
+  public static string TokenFromPublicKey(byte[] pk)
+  {
+    using(var hasher = SHA1.Create())
+    {
+      var hash = hasher.ComputeHash(pk);
+      Array.Reverse(hash);
+      return Convert.ToHexString(hash, 0, 8).ToLowerInvariant();
+    }
+  }
+
+  /// <summary>
+  /// Converts a full public key from its textual form to a PublicKeyToken
+  /// </summary>
+  /// <param name="pk">
+  /// The public key, in its textual form
+  /// </param>
+  /// <returns></returns>
+  public static string TokenFromPublicKey(string pk)
+  {
+    return TokenFromPublicKey(Convert.FromHexString(pk));
   }
 
 }

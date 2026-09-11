@@ -478,17 +478,34 @@ public class AssemblyFileCollection
       }
       var primaryTag = tags.FirstOrDefault();
       var an = assembly.GetName();
-      var friends = AsmReflection.FindFriendAssemblyNames(assembly).ToList();
+      var friends = AsmReflection.FindFriendAssemblies(assembly).ToList();
+      var friendNames = friends.Select(an => GetFriendTag(an));
       node = new AssemblyNode(
         an.FullName,
         afi.FileName,
         primaryTag,
         tags,
-        friends);
+        friendNames);
       return true;
     }
     node = null;
     return false;
+  }
+
+  private string GetFriendTag(AssemblyName an)
+  {
+    var parts = new List<string>();
+    var name = an.Name;
+    if(!String.IsNullOrEmpty(name))
+    {
+      parts.Add(name);
+    }
+    var pkt = an.GetPublicKeyToken();
+    if(pkt != null)
+    {
+      parts.Add("PublicKeyToken=" + Convert.ToHexString(pkt).ToLowerInvariant());
+    }
+    return String.Join(", ", parts);
   }
 
   /// <summary>
