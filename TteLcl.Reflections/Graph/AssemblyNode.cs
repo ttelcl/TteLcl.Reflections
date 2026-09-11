@@ -40,7 +40,8 @@ public class AssemblyNode: IGraphNode
   /// be added automatically
   /// </param>
   /// <param name="internalsVisibleTo">
-  /// The list of "internals visible to" attribute values (if known)
+  /// The list of "internals visible to" attribute values (if known), with PublicKey parts
+  /// replaced by their corresponding PublicKeyToken
   /// </param>
   [JsonConstructor]
   public AssemblyNode(

@@ -174,6 +174,103 @@ let private assemblyUsage o loadState =
       rowBuffer |> cw.WriteRow
   moduleFileName |> finishFile
 
+type private AssemblyTag = {
+  SimpleName: string
+  PublicKeyToken: string
+}
+
+type private AssemblyInternals = {
+  TargetAssembly: AssemblyTag
+  FriendAssemblies: AssemblyTag array
+  FileName: string
+  FolderName: string
+}
+
+let private tagFromAssemblyName (an: AssemblyName) =
+  let name = if an.Name |> String.IsNullOrEmpty then "" else an.Name 
+  let pkt =
+    let pktBytes = an.GetPublicKeyToken()
+    if pktBytes = null || pktBytes.Length = 0 then
+      ""
+    else
+      Convert.ToHexString(pktBytes).ToLowerInvariant()
+  {
+    SimpleName = name
+    PublicKeyToken = pkt
+  }
+
+let private tagFromAssemblyString assemblyNameText =
+  let an = new AssemblyName(assemblyNameText)
+  an |> tagFromAssemblyName
+
+let private asmInternalsFromNode (node: AssemblyNode) =
+  let target = node.FullName |> tagFromAssemblyString
+  let folder, file =
+    if node.Available then
+      node.FileName |> Path.GetDirectoryName, node.FileName |> Path.GetFileName
+    else
+      "", ""
+  let friends =
+    node.InternalsVisibleTo
+    |> Seq.map (fun ans -> ans |> tagFromAssemblyString)
+    |> Seq.toArray
+  {
+    TargetAssembly = target
+    FriendAssemblies = friends
+    FileName = file
+    FolderName = folder
+  }
+
+let private exportInternalsVisible o (graph: AssemblyGraph) =
+  let allInternals =
+    graph.Nodes
+    |> Seq.map asmInternalsFromNode
+    |> Seq.toArray
+  let knownTargets =
+    allInternals
+    |> Seq.map (fun ai -> ai.TargetAssembly)
+    |> Set.ofSeq
+  let fnm = $"{o.Dependencies}.friend-targets.csv"
+  do
+    let builder = new CsvWriteRowBuilder()
+    let targetCell = builder.AddCell("target")
+    let targetPktCell = builder.AddCell("target-pubtoken")
+    let friendsCell = builder.AddCell("friends")
+    let folderCell = builder.AddCell("target-folder")
+    let row = builder.Build()
+    cp $"Saving \fg{fnm}\f0."
+    use cw = new CsvRawWriter(fnm + ".tmp")
+    cw |> row.WriteNamesTo
+    for ai in allInternals do
+      ai.TargetAssembly.SimpleName |> targetCell.Set
+      ai.TargetAssembly.PublicKeyToken |> targetPktCell.Set
+      ai.FriendAssemblies.Length |> string |> friendsCell.Set
+      ai.FolderName |> folderCell.Set
+      cw |> row.WriteValuesTo
+  fnm |> finishFile
+  let fnm = $"{o.Dependencies}.friends.csv"
+  do
+    let builder = new CsvWriteRowBuilder()
+    let targetCell = builder.AddCell("target")
+    let targetPktCell = builder.AddCell("target-token")
+    let friendCell = builder.AddCell("friend")
+    let friendPktCell = builder.AddCell("friend-token")
+    let knownCell = builder.AddCell("friend-known")
+    let row = builder.Build()
+    cp $"Saving \fg{fnm}\f0."
+    use cw = new CsvRawWriter(fnm + ".tmp")
+    cw |> row.WriteNamesTo
+    for ai in allInternals do
+      for friend in ai.FriendAssemblies do
+        let isKnown = knownTargets |> Set.contains friend
+        ai.TargetAssembly.SimpleName |> targetCell.Set
+        ai.TargetAssembly.PublicKeyToken |> targetPktCell.Set
+        friend.SimpleName |> friendCell.Set
+        friend.PublicKeyToken |> friendPktCell.Set
+        isKnown |> string |> knownCell.Set
+        cw |> row.WriteValuesTo
+  fnm |> finishFile
+
 let private loadDependencyGraph o loadState =
   let afc = loadState.Afc
   let mlc = loadState.Mlc
@@ -203,15 +300,13 @@ let private loadDependencyGraph o loadState =
     cp $"{eraser}{message}"
   else
     cp message
+  let asmgraph = builder.Graph
   if o.DoInternalsVisible then
-    ()
-  else
-    cp "\foWarning\fr Absence of \fg-internals-visible-to\fr is currently ignored\f0."
+    asmgraph |> exportInternalsVisible o 
   let fileName = $"{o.Dependencies}.asm-graph.json"
   do
-    let graph = builder.Graph
     use w = fileName |> startFile
-    let json = JsonConvert.SerializeObject(graph, Formatting.Indented)
+    let json = JsonConvert.SerializeObject(asmgraph, Formatting.Indented)
     w.WriteLine(json)
   fileName |> finishFile
   cp "Converting to generic graph model"
