@@ -16,6 +16,7 @@ let usage focus =
   cp "\fg-rule \fcmodule \fbsuffix\f0    Add a submodule name generating rule extending \fcmodule\f0 if the assembly starts with the prefix derived from the module \fbsuffix\f0."
   cp "\fg-rulex \fcmodule \fbsuffix\f0   Like \fg-rule\f0, but matches any assembly starting with \fbsuffix\f0, even if not followed by '.'"
   cp "\fg-m \fcoriginal \fbalias\f0      Add a rule for shortening module names, replacing \fgoriginal\f0 with \fgalias\f0 (after applying submodule rules) "
+  cp "\fg-ivt\f0\fx                   Emit friend assembly information (alias: \fg-internals-visible-to\f0)"
   cp "\fg-@ \fcparameterfile\f0       Read arguments from the parameter file, ignoring lines starting with '#'"
   cp ""
   cp "\foasmreflect typegraph\f0 {\fg-a \fcseed.[dll|exe]\f0} {\fg-p \fcassembly\f0} [\fg-o \fcoutputfile\f0] <flags>"
