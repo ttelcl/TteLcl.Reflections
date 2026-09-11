@@ -23,7 +23,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <PackageReference Include="TteLcl.Csv" Version="0.1.0" />
+		<PackageReference Include="TteLcl.Csv" Version="0.1.0" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -31,7 +31,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <PackageReference Update="FSharp.Core" Version="10.0.100" />
+		<PackageReference Update="FSharp.Core" Version="10.0.100" />
 	</ItemGroup>
 
 </Project>

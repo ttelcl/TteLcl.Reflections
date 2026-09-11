@@ -27,6 +27,7 @@ type private Options = {
   Rules: SubmoduleRules
   AliasRules: ModuleAliasRule list
   DoInternalsVisible: bool
+  PublicKeyTokenAliases: Dictionary<string, string>
 }
 
 type private LoadState = {
@@ -221,7 +222,16 @@ let private asmInternalsFromNode (node: AssemblyNode) =
     FolderName = folder
   }
 
+let private aliasPublicKeyToken o pkt =
+  let found, alias = pkt |> o.PublicKeyTokenAliases.TryGetValue
+  if found then $"[{alias}]"  else pkt
+
 let private exportInternalsVisible o (graph: AssemblyGraph) =
+  cp "Processsing InternalsVisibleTo attributes"
+  if o.PublicKeyTokenAliases.Count > 0 then
+    cp $"   Taking into account \fb{o.PublicKeyTokenAliases.Count}\f0 public key token aliases."
+  else
+    cp "   Not taking into account any public key token aliases (\fg-token-alias\f0)"
   let allInternals =
     graph.Nodes
     |> Seq.map asmInternalsFromNode
@@ -243,7 +253,7 @@ let private exportInternalsVisible o (graph: AssemblyGraph) =
     cw |> row.WriteNamesTo
     for ai in allInternals do
       ai.TargetAssembly.SimpleName |> targetCell.Set
-      ai.TargetAssembly.PublicKeyToken |> targetPktCell.Set
+      ai.TargetAssembly.PublicKeyToken |> aliasPublicKeyToken o |> targetPktCell.Set
       ai.FriendAssemblies.Length |> string |> friendsCell.Set
       ai.FolderName |> folderCell.Set
       cw |> row.WriteValuesTo
@@ -264,9 +274,9 @@ let private exportInternalsVisible o (graph: AssemblyGraph) =
       for friend in ai.FriendAssemblies do
         let isKnown = knownTargets |> Set.contains friend
         ai.TargetAssembly.SimpleName |> targetCell.Set
-        ai.TargetAssembly.PublicKeyToken |> targetPktCell.Set
+        ai.TargetAssembly.PublicKeyToken |> aliasPublicKeyToken o |> targetPktCell.Set
         friend.SimpleName |> friendCell.Set
-        friend.PublicKeyToken |> friendPktCell.Set
+        friend.PublicKeyToken |> aliasPublicKeyToken o |> friendPktCell.Set
         isKnown |> string |> knownCell.Set
         cw |> row.WriteValuesTo
   fnm |> finishFile
@@ -459,6 +469,17 @@ let run args =
     | "-internals-visible-to" :: rest 
     | "-ivt" :: rest ->
       rest |> parseMore {o with DoInternalsVisible = true}
+    | "-token-alias" :: filename :: rest ->
+      if filename |> File.Exists |> not then
+        cp $"\foFile not found\f0: {filename}"
+        None
+      else
+        let json = filename |> File.ReadAllText
+        let map = json |> JsonConvert.DeserializeObject<Dictionary<string,string>>
+        // modify o.PublicKeyTokenAliases in-place. Not very F#-ish, but whatever
+        for kvp in map do
+          o.PublicKeyTokenAliases[kvp.Key] <- kvp.Value
+        rest |> parseMore o
     | [] ->
       if o.Assemblies |> List.isEmpty then
         cp "\foNo assembly arguments (\fg-a\fo) given\f0."
@@ -483,6 +504,7 @@ let run args =
     Rules = new SubmoduleRules()
     AliasRules = []
     DoInternalsVisible = false
+    PublicKeyTokenAliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
   }
   match oo with
   | Some(o) ->
