@@ -5,6 +5,7 @@ open System.IO
 open System.Reflection
 
 open Newtonsoft.Json
+open Newtonsoft.Json.Linq
 
 open TteLcl.Csv
 open TteLcl.Csv.Core
@@ -26,6 +27,8 @@ type private Options = {
   TypeOutFile: string
   Rules: SubmoduleRules
   AliasRules: ModuleAliasRule list
+  DoInternalsVisible: bool
+  PublicKeyTokenAliases: Dictionary<string, string>
 }
 
 type private LoadState = {
@@ -173,6 +176,171 @@ let private assemblyUsage o loadState =
       rowBuffer |> cw.WriteRow
   moduleFileName |> finishFile
 
+type private AssemblyTag = {
+  SimpleName: string
+  PublicKeyToken: string
+}
+
+type private AssemblyInternals = {
+  TargetAssembly: AssemblyTag
+  FriendAssemblies: AssemblyTag array
+  FileName: string
+  FolderName: string
+  Node: AssemblyNode
+}
+
+let private tagFromAssemblyName (an: AssemblyName) =
+  let name = if an.Name |> String.IsNullOrEmpty then "" else an.Name 
+  let pkt =
+    let pktBytes = an.GetPublicKeyToken()
+    if pktBytes = null || pktBytes.Length = 0 then
+      ""
+    else
+      Convert.ToHexString(pktBytes).ToLowerInvariant()
+  {
+    SimpleName = name
+    PublicKeyToken = pkt
+  }
+
+let private tagFromAssemblyString assemblyNameText =
+  let an = new AssemblyName(assemblyNameText)
+  an |> tagFromAssemblyName
+
+let private asmInternalsFromNode (node: AssemblyNode) =
+  let target = node.FullName |> tagFromAssemblyString
+  let folder, file =
+    if node.Available then
+      node.FileName |> Path.GetDirectoryName, node.FileName |> Path.GetFileName
+    else
+      "", ""
+  let friends =
+    node.InternalsVisibleTo
+    |> Seq.map (fun ans -> ans |> tagFromAssemblyString)
+    |> Seq.toArray
+  {
+    TargetAssembly = target
+    FriendAssemblies = friends
+    FileName = file
+    FolderName = folder
+    Node = node
+  }
+
+let private aliasPublicKeyToken o pkt =
+  let found, alias = pkt |> o.PublicKeyTokenAliases.TryGetValue
+  if found then $"[{alias}]"  else pkt
+
+let private friendNode o at =
+  let token = at.PublicKeyToken
+  let alias = token |> aliasPublicKeyToken o
+  let name = at.SimpleName
+  let fob = new JObject()
+  fob.Add("pkeyalias", alias)
+  fob.Add("name", name)
+  fob.Add("pkeytoken", token)
+  fob, name, alias
+
+let private asmNode2 o ai =
+  let node = ai.Node
+  let ob = new JObject()
+  let an = node.AssemblyName
+  let pktBytes = an.GetPublicKeyToken()
+  let token, alias =
+    if pktBytes <> null then
+      let pkt = Convert.ToHexString(pktBytes).ToLowerInvariant()
+      let alias = pkt |> aliasPublicKeyToken o
+      pkt, alias
+    else
+      "", ""
+  if token |> String.IsNullOrEmpty |> not then
+    ob.Add("pkeyalias", alias)
+  ob.Add("module", node.Module)
+  ob.Add("name", an.Name)
+  ob.Add("version", an.Version.ToString())
+  if token |> String.IsNullOrEmpty |> not then
+    ob.Add("pkeytoken", token)
+  ob.Add("file", ai.FileName)
+  ob.Add("folder", ai.FolderName)
+  let friends = new JArray()
+  ob.Add("friends", friends)
+  let friendNodes =
+    ai.FriendAssemblies
+    |> Seq.map (friendNode o)
+    |> Seq.sortBy (fun (_, name, alias) -> (alias, name))
+    |> Seq.map (fun (node, _, _) -> node)
+  for node in friendNodes do
+    friends.Add(node)
+  ob, an.Name, alias
+
+let private exportInternalsVisible o (graph: AssemblyGraph) =
+  cp "Processsing InternalsVisibleTo attributes"
+  if o.PublicKeyTokenAliases.Count > 0 then
+    cp $"   Taking into account \fb{o.PublicKeyTokenAliases.Count}\f0 public key token aliases."
+  else
+    cp "   Not taking into account any public key token aliases (\fg-token-alias\f0)"
+  let allInternals =
+    graph.Nodes
+    |> Seq.map asmInternalsFromNode
+    |> Seq.toArray
+  let knownTargets =
+    allInternals
+    |> Seq.map (fun ai -> ai.TargetAssembly)
+    |> Set.ofSeq
+  let fnm = $"{o.Dependencies}.friend-targets.csv"
+  do
+    let builder = new CsvWriteRowBuilder()
+    let targetCell = builder.AddCell("target")
+    let targetPktCell = builder.AddCell("target-pubtoken")
+    let friendsCell = builder.AddCell("friends")
+    let folderCell = builder.AddCell("target-folder")
+    let row = builder.Build()
+    cp $"Saving \fg{fnm}\f0."
+    use cw = new CsvRawWriter(fnm + ".tmp")
+    cw |> row.WriteNamesTo
+    for ai in allInternals do
+      ai.TargetAssembly.SimpleName |> targetCell.Set
+      ai.TargetAssembly.PublicKeyToken |> aliasPublicKeyToken o |> targetPktCell.Set
+      ai.FriendAssemblies.Length |> string |> friendsCell.Set
+      ai.FolderName |> folderCell.Set
+      cw |> row.WriteValuesTo
+  fnm |> finishFile
+  let fnm = $"{o.Dependencies}.friends.csv"
+  do
+    let builder = new CsvWriteRowBuilder()
+    let targetCell = builder.AddCell("target")
+    let targetPktCell = builder.AddCell("target-token")
+    let friendCell = builder.AddCell("friend")
+    let friendPktCell = builder.AddCell("friend-token")
+    let knownCell = builder.AddCell("friend-known")
+    let row = builder.Build()
+    cp $"Saving \fg{fnm}\f0."
+    use cw = new CsvRawWriter(fnm + ".tmp")
+    cw |> row.WriteNamesTo
+    for ai in allInternals do
+      for friend in ai.FriendAssemblies do
+        let isKnown = knownTargets |> Set.contains friend
+        ai.TargetAssembly.SimpleName |> targetCell.Set
+        ai.TargetAssembly.PublicKeyToken |> aliasPublicKeyToken o |> targetPktCell.Set
+        friend.SimpleName |> friendCell.Set
+        friend.PublicKeyToken |> aliasPublicKeyToken o |> friendPktCell.Set
+        isKnown |> string |> knownCell.Set
+        cw |> row.WriteValuesTo
+  fnm |> finishFile
+
+  let fnm = $"{o.Dependencies}.friends.json"
+  do
+    let assemblyObjects =
+      allInternals
+      |> Seq.map (asmNode2 o)
+      |> Seq.sortBy (fun (_, name, alias) -> (alias, name))
+      |> Seq.map (fun (node, _, _) -> node)
+    let asmObjects = new JArray()
+    for aob in assemblyObjects do
+      aob |> asmObjects.Add
+    use w = fnm |> startFile
+    let json = JsonConvert.SerializeObject(asmObjects, Formatting.Indented)
+    json |> w.WriteLine
+  fnm |> finishFile
+
 let private loadDependencyGraph o loadState =
   let afc = loadState.Afc
   let mlc = loadState.Mlc
@@ -202,11 +370,13 @@ let private loadDependencyGraph o loadState =
     cp $"{eraser}{message}"
   else
     cp message
+  let asmgraph = builder.Graph
+  if o.DoInternalsVisible then
+    asmgraph |> exportInternalsVisible o 
   let fileName = $"{o.Dependencies}.asm-graph.json"
   do
-    let graph = builder.Graph
     use w = fileName |> startFile
-    let json = JsonConvert.SerializeObject(graph, Formatting.Indented)
+    let json = JsonConvert.SerializeObject(asmgraph, Formatting.Indented)
     w.WriteLine(json)
   fileName |> finishFile
   cp "Converting to generic graph model"
@@ -353,6 +523,23 @@ let run args =
     | "-m" :: m :: alias :: rest 
     | "-alias" :: m :: alias :: rest ->
       rest |> parseMore {o with AliasRules = new ModuleAliasRule(m, alias) :: o.AliasRules}
+    | "-internalsvisibleto" :: rest 
+    | "-internalsvisible" :: rest 
+    | "-internals-visible" :: rest 
+    | "-internals-visible-to" :: rest 
+    | "-ivt" :: rest ->
+      rest |> parseMore {o with DoInternalsVisible = true}
+    | "-token-alias" :: filename :: rest ->
+      if filename |> File.Exists |> not then
+        cp $"\foFile not found\f0: {filename}"
+        None
+      else
+        let json = filename |> File.ReadAllText
+        let map = json |> JsonConvert.DeserializeObject<Dictionary<string,string>>
+        // modify o.PublicKeyTokenAliases in-place. Not very F#-ish, but whatever
+        for kvp in map do
+          o.PublicKeyTokenAliases[kvp.Key] <- kvp.Value
+        rest |> parseMore o
     | [] ->
       if o.Assemblies |> List.isEmpty then
         cp "\foNo assembly arguments (\fg-a\fo) given\f0."
@@ -376,6 +563,8 @@ let run args =
     TypeOutFile = null
     Rules = new SubmoduleRules()
     AliasRules = []
+    DoInternalsVisible = false
+    PublicKeyTokenAliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
   }
   match oo with
   | Some(o) ->

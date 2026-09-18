@@ -156,7 +156,8 @@ public class AssemblyGraph
       assemblyName.FullName,
       null,
       module,
-      tags);
+      tags,
+      null /* "missing" implies that no internals-visible-to info is known */);
     var node = AddNode(node2);
     if(!Object.ReferenceEquals(node, node2))
     {
